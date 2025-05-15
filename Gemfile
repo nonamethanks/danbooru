@@ -69,19 +69,20 @@ gem "kramdown"
 gem "abbrev"
 
 group :development do
-  gem 'rubocop', require: false
-  gem 'rubocop-rails', require: false
-  #gem 'meta_request'
-  gem 'rack-mini-profiler'
-  gem 'stackprof'
-  gem 'flamegraph'
-  gem 'memory_profiler'
-  gem 'better_errors'
-  gem 'binding_of_caller'
-  gem 'benchmark-ips', require: "benchmark/ips"
-  gem 'listen'
-  gem 'solargraph'
-  gem 'derailed_benchmarks'
+  gem "rubocop", require: false
+  gem "rubocop-rails", require: false
+  # gem 'meta_request'
+  gem "rack-mini-profiler"
+  gem "stackprof"
+  gem "flamegraph"
+  gem "memory_profiler"
+  gem "better_errors"
+  gem "binding_of_caller"
+  gem "benchmark-ips", require: "benchmark/ips"
+  gem "listen"
+  gem "solargraph"
+  gem "ruby-lsp"
+  gem "derailed_benchmarks"
 end
 
 group :test do
