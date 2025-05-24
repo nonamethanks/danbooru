@@ -55,5 +55,6 @@
   },
   "features": {
     "ghcr.io/devcontainers/features/github-cli:1": {}
-  }
+  },
+  "postCreateCommand": "bin/rails db:test:prepare"
 }
