@@ -35,6 +35,7 @@ module Source
       Source::URL::ArtStation,
       Source::URL::Booth,
       Source::URL::DeviantArt,
+      Source::URL::EHentai,
       Source::URL::Fanbox,
       Source::URL::Fandom,
       Source::URL::Fantia,
