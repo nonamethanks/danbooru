@@ -149,6 +149,13 @@ module Source
       raise NotImplementedError
     end
 
+    # Subclasses should implement this to return a tag's url from a name.
+    #
+    # @param tag [String] The tag name.
+    def self.url_for_tag(tag)
+      raise NotImplementedError
+    end
+
     # Return the extractor class to use for this URL. By default, it's the Source::Extractor subclass with the same name
     # as this Source::URL subclass. Subclasses can override this to provide a different extractor.
     def extractor_class

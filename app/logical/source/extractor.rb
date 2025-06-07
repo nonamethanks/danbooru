@@ -27,7 +27,7 @@ module Source
 
     attr_reader :url, :referer_url, :parsed_url, :parsed_referer, :parent_extractor, :default_credentials, :options
 
-    delegate :site_name, to: :parsed_url
+    delegate :site_name, :url_for_tag, to: :parsed_url
 
     # Should return true if the extractor is configured correctly. Return false
     # if the extractor requires api keys that have not been configured.
@@ -47,10 +47,10 @@ module Source
     # @param referer_url [String, nil] The page URL if `url` is an image URL.
     # @param default_extractor [Source::Extractor, nil] The extractor to use if no other extractor is found for this URL.
     # @return [Source::Extractor, nil] The extractor, or nil if the URL couldn't be parsed and the default extractor is nil.
-    def self.find(url, referer_url = nil, default_extractor: Extractor::Null, **options)
+    def self.find(url, referer_url = nil, default_extractor: Extractor::Null, **)
       parsed_url = Source::URL.parse(url)
       parsed_referer = Source::URL.parse(referer_url)
-      parsed_url&.extractor(referer_url: parsed_referer, **options) || default_extractor&.new(url, referer_url: referer_url, **options)
+      parsed_url&.extractor(referer_url: parsed_referer, **) || default_extractor&.new(url, referer_url: referer_url, **)
     end
 
     # Initialize an extractor. Normally one should call `Source::Extractor.find`
@@ -305,20 +305,17 @@ module Source
       Artist.new(
         name: tag_name,
         other_names: other_names,
-        url_string: profile_urls.join("\n")
+        url_string: profile_urls.join("\n"),
       )
     end
 
+    # A list of tags extracted from a source url. Should be a list of strings.
     def tags
-      (@tags || []).uniq
+      []
     end
 
     def normalized_tags
-      tags.map { |tag, _url| normalize_tag(tag) }.sort.uniq
-    end
-
-    def normalize_tag(tag)
-      WikiPage.normalize_other_name(tag).downcase
+      tags.map { |tag| WikiPage.normalize_other_name(tag).downcase }.sort.uniq
     end
 
     def translated_tags

@@ -56,4 +56,9 @@ class Source::URL::Anifty < Source::URL
   def profile_url
     "https://anifty.jp/@#{username}" if username.present?
   end
+
+  def self.url_for_tag(tag) # rubocop:disable Lint/UnusedMethodArgument
+    # anifty marketplace uses XHR requests to filter by tags, so there's no url to get
+    "https://anifty.jp/marketplace"
+  end
 end

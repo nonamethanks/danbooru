@@ -40,10 +40,7 @@ class Source::Extractor
     end
 
     def tags
-      # anifty marketplace uses XHR requests to filter by tags, so there's no url to get
-      api_response["tags"].to_a.map do |tag|
-        [tag["name"], "https://anifty.jp/marketplace"]
-      end
+      api_response["tags"].to_a.pluck("name")
     end
 
     def page_url

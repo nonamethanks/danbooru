@@ -88,4 +88,8 @@ class Source::URL::ArtStation < Source::URL
   def profile_url
     "https://www.artstation.com/#{username}" if username.present?
   end
+
+  def self.url_for_tag(tag)
+    "https://www.artstation.com/search?q=#{Danbooru::URL.escape(tag)}"
+  end
 end
