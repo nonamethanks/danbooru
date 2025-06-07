@@ -65,8 +65,6 @@ class Source::URL::Null < Source::URL
       "Doujinshi.org"
     in _, "cloudfront.net" if host == "dxthpu4318olx.cloudfront.net"
       "Drawcrowd"
-    in _, ("e-hentai.org" | "exhentai.org" | "hath.network")
-      "E-Hentai"
     in _, "eth.co"
       "Eth.co"
     in _, "exblog.jp"
@@ -374,24 +372,6 @@ class Source::URL::Null < Source::URL
     # http://dl.dropbox.com/u/76682289/daitoHP-WP/pict/
     in _, "dropbox.com", *rest
       nil
-
-    # https://e-hentai.org/tag/artist:spirale
-    # https://e-hentai.org/uploader/Spirale
-    in _, "e-hentai.org", *rest
-      nil
-
-    # https://lyjrkow.ksxjubvoouva.hath.network/h/416a7c19fb25549e084876f932e2f6d45a5b2d63-1215161-2400-3589-jpg/keystamp=1683990600-aab6e15ff8;fileindex=119976531;xres=2400/89931055_p0.jpg
-    # https://drjvktq.miqlthdkffuu.hath.network/h/dce4b9677c8f769c12c8889e2581b989a3edd1bb-280532-642-802-png/keystamp=1683992100-6e1bddc318;fileindex=116114230;xres=org/1667196644017_fe0ug7p4.png
-    in _, "hath.network", "h", _, params_string, _
-      params = params_string.split(";").map { |s| s.split("=", 2) }.to_h rescue {}
-      @bad_link = true
-      @image_sample = params["xres"] != "org"
-
-    # https://hacaqjfrpvthigkeomjq.hath.network/om/119976531/188d8aec2d0ae17cfddf32849481385dd3303fc9-13295955-4379-6549-jpg/b09e528c8897a5a0ecb288f85fe9e9230d4a5f1c-483531-1280-1914-jpg/1280/v2f1fil8ij9dbk115c6/89931055_p0.jpg
-    # https://ykofnavysaepqurqrbmv.hath.network/om/119976531/188d8aec2d0ae17cfddf32849481385dd3303fc9-13295955-4379-6549-jpg/x/0/cqq6hb0kct3sx4115c4/89931055_p0.jpg
-    in _, "hath.network", "om", key, _, _, sample_size, _, _
-      @bad_link = true
-      @image_sample = sample_size != "0"
 
     # https://e-shuushuu.net/images/2017-07-19-915628.jpeg
     in _, "e-shuushuu.net", "images", /^\d{4}-\d{2}-\d{2}-(\d+)\.(jpeg|jpg|png|gif)$/i
