@@ -319,12 +319,22 @@ module Source
       nil
     end
 
+    def url_class
+      "Source::URL::#{self.class.name.demodulize}".safe_constantize
+    end
+
+    # A list of strings corresponding to the tags for this source
     def tags
       (@tags || []).uniq
     end
 
+    # A map of external tags and their urls, which are used to display links in the upload and source pages.
+    def tag_map
+      tags.index_with { |tag| url_class.tag_url_for(tag) }
+    end
+
     def normalized_tags
-      tags.flat_map { |tag, _url| TagNormalizer.normalize(tag) }.sort.uniq
+      tags.map { |tag| TagNormalizer.normalize(tag) }.sort.uniq
     end
 
     def translated_tags

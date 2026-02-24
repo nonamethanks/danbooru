@@ -45,10 +45,14 @@ class Source::Extractor
       page&.css(".pictureDetails-authorArea2 .pictureDetails__authorName, .book_info-author-name")&.text&.strip
     end
 
-    def tags
-      page&.css(".cmn-tag a.tag[href^='https://'], #js-tag-view-area .keyword a").to_a.map do |tag|
+    def tag_map
+      page&.css(".cmn-tag a.tag[href^='https://'], #js-tag-view-area .keyword a").to_a.to_h do |tag|
         [tag.text.strip, tag.attr("href")]
       end
+    end
+
+    def tags
+      tag_map.keys
     end
 
     def artist_commentary_title
@@ -63,9 +67,7 @@ class Source::Extractor
       DText.from_html(artist_commentary_desc, base_url: "https://medibang.com")
     end
 
-    def book_id
-      parsed_url.book_id
-    end
+    delegate :book_id, to: :parsed_url
 
     def book_api_url
       "https://medibang.com/api/book/fixedList2/#{book_id}/?quality=pc" if book_id

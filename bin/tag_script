@@ -1,0 +1,65 @@
+#!/usr/bin/env bash
+
+# Generate skeleton parsing and extracting tests for an url strategy
+
+set -uo pipefail
+
+PARSER_STRATEGIES_LOCATION="app/logical/source/url"
+PARSER_TESTS_LOCATION="test/unit/source/url"
+EXTRACTOR_TESTS_LOCATION="test/unit/source/extractor"
+EXTRACTOR_STRATEGIES_LOCATION="app/logical/source/extractor"
+
+for EXTRACTOR_FILE in $EXTRACTOR_STRATEGIES_LOCATION/*; do
+
+    STRATEGY_NAME="${EXTRACTOR_FILE##*/}" # only the file
+    STRATEGY_NAME="${STRATEGY_NAME%.*}" # without the ext
+
+    echo "Processing $STRATEGY_NAME"
+
+    PARSER_TESTS_FILE="$PARSER_TESTS_LOCATION/${STRATEGY_NAME}_url_test.rb"
+    EXTRACTOR_TESTS_FILE="$EXTRACTOR_TESTS_LOCATION/${STRATEGY_NAME}_extractor_test.rb"
+    STRATEGY_FILE="$PARSER_STRATEGIES_LOCATION/$STRATEGY_NAME.rb"
+
+    STRATEGY_CLASS_NAME="$(echo "$STRATEGY_NAME" | sed -E 's/(^|[_[:space:]])([a-z])/\U\2/g')"
+
+    {
+        head -n-1 $STRATEGY_FILE
+        cat <<EOF
+
+  def self.tag_url_for(tag, **_args)
+    format("https://www.artstation.com/search?query=%{tag}", tag: tag)
+  end
+EOF
+        tail -n1 $STRATEGY_FILE
+    } > "$STRATEGY_FILE"_tmp
+
+    {
+        head -n-2 $PARSER_TESTS_FILE
+        cat <<EOF
+
+    context "for tags" do
+      should "generate the right url" do
+        assert_equal(Source::URL::$STRATEGY_CLASS_NAME.tag_url_for(""), "")
+      end
+    end
+EOF
+        tail -n2 $PARSER_TESTS_FILE
+    } > "$PARSER_TESTS_FILE"_tmp
+
+    mv "$STRATEGY_FILE"_tmp "$STRATEGY_FILE"
+    mv "$PARSER_TESTS_FILE"_tmp "$PARSER_TESTS_FILE"
+
+    if [[ -n "$CODESPACES" ]] || $(grep "vscode" || grep "danbooru"); then
+        if command -v code >/dev/null 2>&1; then
+            echo "Opening the tests files in vscode."
+            code "$EXTRACTOR_FILE"
+            code "$STRATEGY_FILE"
+            code "$PARSER_TESTS_FILE"
+            code "$EXTRACTOR_TESTS_FILE"
+        else
+            echo "Couldn't open the files in vscode. Make sure you edit it: $TESTS_FILE"
+        fi
+    fi
+
+    read  -n 1 -p "Waiting for next extractor..."
+done

@@ -88,4 +88,8 @@ class Source::URL::ArtStation < Source::URL
   def profile_url
     "https://www.artstation.com/#{username}" if username.present?
   end
+
+  def self.tag_url_for(tag, **_args)
+    format("https://www.artstation.com/search?query=%{tag}", tag: tag)
+  end
 end

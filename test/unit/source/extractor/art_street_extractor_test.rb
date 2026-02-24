@@ -41,6 +41,11 @@ module Source::Tests::Extractor
         tag_name: "pogorabbit",
         other_names: ["PogoRabbit"],
         tags: %w[hutao Zhongli(GenshinImpact) GenshinImpact],
+        tag_map: {
+          GenshinImpact: "https://medibang.com/contentsSearch/?tagName=GenshinImpact&tagId=312294&searchCategory=3",
+          hutao: "https://medibang.com/contentsSearch/?tagName=hutao&tagId=381851&searchCategory=3",
+          "Zhongli(GenshinImpact)": "https://medibang.com/contentsSearch/?tagName=Zhongli(GenshinImpact)&tagId=459686&searchCategory=3",
+        },
         artist_commentary_title: "Wangshen funeral partners",
         dtext_artist_commentary_desc: "Idk but this was so much fun to draw! :D",
       )

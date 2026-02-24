@@ -27,5 +27,11 @@ module Source::Tests::URL
         page_url: "https://www.behance.net/gallery/97612065/Title",
       )
     end
+
+    context "for tags" do
+      should "generate the right url" do
+        assert_equal(Source::URL::Behance.tag_url_for("anime"), "https://www.behance.net/search/projects/anime")
+      end
+    end
   end
 end

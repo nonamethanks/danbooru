@@ -44,9 +44,7 @@ class Source::Extractor
     end
 
     def tags
-      api_response[:tags].to_a.map do |tag|
-        [tag, "https://www.artstation.com/search?q=#{Danbooru::URL.escape(tag)}"]
-      end
+      api_response[:tags].map {|tag| tag.remove_prefix("#") }
     end
 
     def image_urls_from_api

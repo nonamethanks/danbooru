@@ -56,6 +56,11 @@ module ExtractorTestHelper
           should_validate_tags(strategy, tags)
         end
 
+        if arguments.include?(:tag_map)
+          tag_map = arguments.delete(:tag_map)
+          should_validate_tag_map(strategy, tag_map)
+        end
+
         if arguments.include?(:translated_tags)
           translated_tags = arguments.delete(:translated_tags)
           assert_equal(translated_tags.sort, strategy.translated_tags.map(&:name).sort)
@@ -75,19 +80,25 @@ module ExtractorTestHelper
   end
 
   def should_validate_tags(strategy, expected_tags = nil)
+    if expected_tags.instance_of?(Hash)
+      return should_validate_tag_map(strategy, expected_tags)
+    elsif expected_tags.first.instance_of?(Array)
+      return should_validate_tag_map(strategy, expected_tags.to_h)
+    end
+
     actual_tags = strategy.tags
     assert_equal(Array, actual_tags.class, "tags should be an Array")
-    assert(actual_tags.all?(Array), "tags should be an Array of Arrays")
+    assert(actual_tags.all?(String), "tags should be an Array of strings")
 
     return unless expected_tags.present?
 
-    if expected_tags&.first.instance_of?(Array)
-      assert_equal(expected_tags.sort, actual_tags.sort, "Tags expected but not found: #{expected_tags.difference(actual_tags)}. Tags found but not expected: #{actual_tags.difference(expected_tags)}")
-    elsif expected_tags&.first.instance_of?(String)
-      expected = expected_tags.map(&:downcase).sort
-      actual = actual_tags.map(&:first).map(&:downcase).sort
-      assert_equal(expected, actual, "Tags expected but not found: #{expected.difference(actual)}. Tags found but not expected: #{actual.difference(expected)}")
-    end
+    expected = expected_tags.map(&:downcase).sort
+    actual = actual_tags.map(&:downcase).sort
+    assert_equal(expected, actual, "Tags expected but not found: #{expected.difference(actual)}. Tags found but not expected: #{actual.difference(expected)}")
+  end
+
+  def should_validate_tag_map(strategy, expected_tag_map)
+    assert_equal(expected_tag_map.sort.to_h.with_indifferent_access, strategy.tag_map.sort.to_h.with_indifferent_access)
   end
 
   def should_match_source_data(strategy, methods_to_test)

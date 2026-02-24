@@ -257,4 +257,15 @@ module Danbooru
       [self.class, original_url].hash
     end
   end
+
+  # Format a string so that it returns a valid url
+  # Example call: `format("https://x.com/hashtag/%{tag}", tag: tag)`
+  #
+  # @param template_url [String] A template string to be injected with variables.
+  # @param args [Hash] Variables that need to be injected into the string.
+  # @return [String] A formatted string.
+  def self.format(template_url, **args)
+    escaped_args = args.transform_values { |arg| escape(arg) }
+    template_url % escaped_args
+  end
 end

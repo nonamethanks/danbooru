@@ -96,9 +96,7 @@ module Source
       end
 
       def tags
-        project["tags"].to_a.map do |tag|
-          [tag["title"], "https://www.behance.net/search/projects/#{Danbooru::URL.escape(tag["title"])}"]
-        end
+        project["tags"].to_a.pluck("title")
       end
 
       memoize def project

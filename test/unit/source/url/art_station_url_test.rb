@@ -30,5 +30,11 @@ module Source::Tests::URL
       url_parser_should_work("https://anubis1982918.artstation.com/projects/qPVGP/", page_url: "https://www.artstation.com/artwork/qPVGP", username: "anubis1982918")
       url_parser_should_work("https://www.artstation.com/artwork/ghost-in-the-shell-fandom", page_url: "https://www.artstation.com/artwork/ghost-in-the-shell-fandom", username: nil)
     end
+
+    context "for tags" do
+      should "generate the right url" do
+        assert_equal(Source::URL::ArtStation.tag_url_for("Digital 3D"), "https://www.artstation.com/search?query=Digital 3D")
+      end
+    end
   end
 end

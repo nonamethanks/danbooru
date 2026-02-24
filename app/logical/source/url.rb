@@ -16,6 +16,7 @@
 # * image_url?
 # * page_url
 # * profile_url
+# * tag_url_for (to generate urls for tags found by extractors)
 #
 # Source::URL is a subclass of Danbooru::URL, so it inherits some common utility methods
 # from there.
@@ -302,11 +303,17 @@ module Source
     end
 
     # Generate the canonical tag url for a website.
+    # Because tag names can cointain characters that can be misinterpreted by browsers/webservers, this function should call `format`
+    # (provided by Danbooru::URL). Extra arguments can be passed to the function for interpolation.
+    # Example:
+    # def self.tag_url_for(tag)
+    #   format("https://x.com/hashtag/%{tag}", tag: tag)
+    # end
     #
     # @param tag [String] The tag name
-    # @param args [Hash] An optional amount of args that might specify what type of tag to consider
+    # @param args [Hash] Extra that need to be injected into the string, such as usernames or tag types.
     # @return [String, nil] The url for the tag
-    def self.tag_url_for(tag_name, **args) # rubocop:disable Lint/UnusedMethodArgument
+    def self.tag_url_for(tag, **args) # rubocop:disable Lint/UnusedMethodArgument
       nil
     end
 

@@ -62,4 +62,8 @@ class Source::URL::Behance < Source::URL
   def profile_url
     "https://www.behance.net/#{username}" if username.present?
   end
+
+  def self.tag_url_for(tag, **_args)
+    format("https://www.behance.net/search/projects/%{tag}", tag: tag)
+  end
 end
