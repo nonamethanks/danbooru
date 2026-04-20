@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require "tempfile"
+
 # Like Tempfile, but delete the tempfile when it's closed.
 #
 # The Tempfile class in the standard library doesn't delete the file immediately when you call `file.close`. Instead you

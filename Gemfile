@@ -12,6 +12,7 @@ gem "bcrypt", require: "bcrypt"
 gem "aws-sdk-sqs", "~> 1"
 gem "responders"
 gem "dtext_rb", path: "lib/dtext_rb", require: "dtext"
+gem "media_file", path: "lib/media_file", require: "media_file"
 gem "memoist"
 gem "daemons"
 gem "bootsnap", require: false

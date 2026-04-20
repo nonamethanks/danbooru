@@ -1,12 +1,15 @@
 # frozen_string_literal: true
 
+require "fileutils"
+require "tmpdir"
+
 # Danbooru::Tempdir.create is like `Dir.mktmpdir`, except if it's used without a block it automatically cleans up the
 # directory when the object is garbage collected.
 module Danbooru
   class Tempdir
     attr_reader :path
 
-    def self.create(*args, &block)
+    def self.create(*args)
       return new(*args) unless block_given?
 
       tmpdir = new(*args)
