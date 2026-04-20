@@ -15,7 +15,7 @@ class MediaFile
   attr_accessor :file
 
   # delegate all File methods to `file`.
-  delegate *(File.instance_methods - MediaFile.instance_methods), to: :file
+  delegate(*(File.instance_methods - MediaFile.instance_methods), to: :file)
 
   # Open a file or filename and return a MediaFile object. If a block is given,
   # pass the file to the block and return the result after closing the file.
@@ -68,7 +68,7 @@ class MediaFile
   # @param [File] an open file
   # @return [Symbol] the file's type
   def self.file_ext(file)
-    FileTypeDetector.new(file).file_ext
+    Danbooru::FileTypeDetector.new(file).file_ext
   end
 
   # @return [Boolean] true if we can generate video previews.
@@ -135,9 +135,7 @@ class MediaFile
   end
 
   # @return [Integer] the size of the file in bytes
-  def file_size
-    file.size
-  end
+  delegate :size, to: :file, prefix: true
 
   # @return [ExifTool::Metadata] The metadata for the file. Subclasses may override this to add
   #   extra non-ExifTool metadata, such as error messages, Ugoira frame delays, or ffprobe metadata.

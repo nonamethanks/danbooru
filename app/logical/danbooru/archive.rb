@@ -190,7 +190,7 @@ module Danbooru
             e.pathname = pn.relative_path_from(directory).to_s.force_encoding("ASCII-8BIT")
             e.size = pn.size
             e.filetype = ::Archive::Entry::FILE
-            e.perm = 0644
+            e.perm = 0o644
             archive.write_header e
             File.open(pn) do |f|
               until f.eof?
@@ -221,7 +221,7 @@ module Danbooru
 
     # @return [Symbol] The archive format as detected by us (:zip, :rar, :7z, etc).
     def file_ext
-      @file_ext ||= FileTypeDetector.new(file).file_ext
+      @file_ext ||= Danbooru::FileTypeDetector.new(file).file_ext
     end
 
     # @return [String] The archive format as returned by libarchive ("RAR", "ZIP", etc).
