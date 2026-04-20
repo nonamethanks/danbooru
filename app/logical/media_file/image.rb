@@ -19,7 +19,7 @@ class MediaFile::Image < MediaFile
     image.size
   rescue Vips::Error
     [metadata.width, metadata.height]
-  rescue
+  rescue StandardError
     [0, 0]
   end
 
@@ -149,7 +149,7 @@ class MediaFile::Image < MediaFile
       resized_image = flattened_image
     end
 
-    output_file = Danbooru::Tempfile.new(["danbooru-image-preview-#{md5}-", ".#{format.to_s}"])
+    output_file = Danbooru::Tempfile.new(["danbooru-image-preview-#{md5}-", ".#{format}"])
     case format.to_sym
     when :jpeg
       # https://www.libvips.org/API/current/VipsForeignSave.html#vips-jpegsave
@@ -253,16 +253,14 @@ class MediaFile::Image < MediaFile
   end
 
   def video
-    FFmpeg.new(self)
+    Danbooru::FFmpeg.new(self)
   end
 
   def preview_frame
-    @preview_frame ||= begin
-      if is_animated?
-        video.smart_video_preview || self
-      else
-        self
-      end
+    if is_animated?
+      @preview_frame ||= video.smart_video_preview || self
+    else
+      @preview_frame ||= self
     end
   end
 

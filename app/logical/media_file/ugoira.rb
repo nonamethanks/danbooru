@@ -125,7 +125,11 @@ class MediaFile::Ugoira < MediaFile
 
     nil
   ensure
-    zip&.close rescue nil # work around for https://github.com/rubyzip/rubyzip/issues/216; triggered by files with UniversalTime extra field
+    begin
+      zip&.close
+    rescue StandardError
+      nil
+    end # work around for https://github.com/rubyzip/rubyzip/issues/216; triggered by files with UniversalTime extra field
     stream&.close
   end
 
@@ -454,10 +458,10 @@ class MediaFile::Ugoira < MediaFile
         raise "two-pass encoding is not supported for #{codec}" unless codec.in?(%i[vp8 vp9])
 
         passlogfile_path = File.join(tmpdir_path, "ffmpeg2pass")
-        FFmpeg.shell!("#{ffmpeg_command} -pass 1 -passlogfile #{passlogfile_path.shellescape} -f null /dev/null")
-        FFmpeg.shell!("#{ffmpeg_command} -pass 2 -passlogfile #{passlogfile_path.shellescape} -y #{encoded_output_path.shellescape}")
+        Danbooru::FFmpeg.shell!("#{ffmpeg_command} -pass 1 -passlogfile #{passlogfile_path.shellescape} -f null /dev/null")
+        Danbooru::FFmpeg.shell!("#{ffmpeg_command} -pass 2 -passlogfile #{passlogfile_path.shellescape} -y #{encoded_output_path.shellescape}")
       else
-        FFmpeg.shell!("#{ffmpeg_command} -y #{encoded_output_path.shellescape}")
+        Danbooru::FFmpeg.shell!("#{ffmpeg_command} -y #{encoded_output_path.shellescape}")
       end
 
       # XXX ffmpeg incorrectly sets the duration of the last frame to 40ms, so here we use mkvmerge to fix it.
@@ -474,10 +478,10 @@ class MediaFile::Ugoira < MediaFile
       if format == :mp4
         # mkvmerge can read .mp4 files, but it can only output .mkv files, so we have to convert the fixed .mkv back to .mp4
         fixed_output_path = File.join(tmpdir_path, "out-fixed.mkv")
-        FFmpeg.shell!("mkvmerge --timestamps 0:#{timestamps_txt_path.shellescape} #{encoded_output_path.shellescape} -o #{fixed_output_path.shellescape}")
-        FFmpeg.shell!("ffmpeg -i #{fixed_output_path.shellescape} -c copy #{format_args} -y #{output_file.path.shellescape}")
+        Danbooru::FFmpeg.shell!("mkvmerge --timestamps 0:#{timestamps_txt_path.shellescape} #{encoded_output_path.shellescape} -o #{fixed_output_path.shellescape}")
+        Danbooru::FFmpeg.shell!("ffmpeg -i #{fixed_output_path.shellescape} -c copy #{format_args} -y #{output_file.path.shellescape}")
       else
-        FFmpeg.shell!("mkvmerge --timestamps 0:#{timestamps_txt_path.shellescape} #{encoded_output_path.shellescape} -o #{output_file.path.shellescape}")
+        Danbooru::FFmpeg.shell!("mkvmerge --timestamps 0:#{timestamps_txt_path.shellescape} #{encoded_output_path.shellescape} -o #{output_file.path.shellescape}")
       end
 
       MediaFile.open(output_file)
@@ -488,7 +492,7 @@ class MediaFile::Ugoira < MediaFile
 
   def preview_frame
     synchronize do
-      @preview_frame ||= FFmpeg.new(convert).smart_video_preview!
+      @preview_frame ||= Danbooru::FFmpeg.new(convert).smart_video_preview!
     end
   end
 
