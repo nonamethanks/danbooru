@@ -26,7 +26,7 @@ class MediaMetadata < ApplicationRecord
   end
 
   def metadata
-    ExifTool::Metadata.new(self[:metadata])
+    Danbooru::ExifTool::Metadata.new(self[:metadata])
   end
 
   def frame_delays

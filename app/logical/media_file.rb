@@ -137,16 +137,16 @@ class MediaFile
   # @return [Integer] the size of the file in bytes
   delegate :size, to: :file, prefix: true
 
-  # @return [ExifTool::Metadata] The metadata for the file. Subclasses may override this to add
+  # @return [Danbooru::ExifTool::Metadata] The metadata for the file. Subclasses may override this to add
   #   extra non-ExifTool metadata, such as error messages, Ugoira frame delays, or ffprobe metadata.
   #   This metadata may be slower to calculate than the raw `exif_metadata`.
   def metadata
     exif_metadata
   end
 
-  # @return [ExifTool::Metadata] The metadata for the file, as returned by ExifTool.
+  # @return [Danbooru::ExifTool::Metadata] The metadata for the file, as returned by ExifTool.
   def exif_metadata
-    ExifTool.new(file).metadata
+    Danbooru::ExifTool.new(file).metadata
   end
 
   # @return [Mime::Type] The MIME type of the file, or "application/octet-stream" if unknown.
