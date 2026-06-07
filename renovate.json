@@ -1,104 +1,56 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": [
-    "config:recommended"
-  ],
+  "extends": ["config:recommended"],
   "separateMajorMinor": true,
   "separateMultipleMajor": true,
   "packageRules": [
     {
       "groupName": "{{manager}} non-major dependencies",
       "groupSlug": "{{manager}}-minor-patch",
-      "matchUpdateTypes": [
-        "minor",
-        "patch"
-      ],
-      "matchPackageNames": [
-        "*"
-      ],
-      "excludeDepNames": [
-        "ruby",
-        "node",
-        "mozjpeg",
-        "vips",
-        "ffmpeg",
-        "exiftool"
-      ]
+      "matchUpdateTypes": ["minor", "patch"],
+      "matchPackageNames": ["*"],
+      "excludeDepNames": ["ruby", "node", "mozjpeg", "vips", "ffmpeg", "exiftool"]
     },
     {
       "groupName": "ruby version",
       "groupSlug": "ruby-version",
-      "matchPackageNames": [
-        "ruby"
-      ],
-      "matchFileNames": [
-        ".tool-versions",
-        ".ruby-version",
-        "Dockerfile",
-        "Gemfile"
-      ]
+      "matchPackageNames": ["ruby"],
+      "matchFileNames": [".tool-versions", ".ruby-version", "Dockerfile", "Gemfile"]
     },
     {
       "groupName": "node version",
       "groupSlug": "node-version",
-      "matchPackageNames": [
-        "node"
-      ],
-      "matchFileNames": [
-        ".tool-versions",
-        "Dockerfile"
-      ]
+      "matchPackageNames": ["node"],
+      "matchFileNames": [".tool-versions", "Dockerfile"]
     },
     {
       "groupName": "mozjpeg",
       "groupSlug": "mozjpeg",
-      "matchPackageNames": [
-        "mozjpeg"
-      ],
-      "matchFileNames": [
-        ".tool-versions",
-        "Dockerfile"
-      ]
+      "matchPackageNames": ["mozjpeg"],
+      "matchFileNames": [".tool-versions", "Dockerfile"]
     },
     {
       "groupName": "libvips",
       "groupSlug": "libvips",
-      "matchPackageNames": [
-        "vips"
-      ],
-      "matchFileNames": [
-        ".tool-versions",
-        "Dockerfile"
-      ]
+      "matchPackageNames": ["vips"],
+      "matchFileNames": [".tool-versions", "Dockerfile"]
     },
     {
       "groupName": "ffmpeg",
       "groupSlug": "ffmpeg",
-      "matchPackageNames": [
-        "ffmpeg"
-      ],
-      "matchFileNames": [
-        ".tool-versions",
-        "Dockerfile"
-      ]
+      "matchPackageNames": ["ffmpeg"],
+      "matchFileNames": [".tool-versions", "Dockerfile"]
     },
     {
       "groupName": "exiftool",
       "groupSlug": "exiftool",
-      "matchPackageNames": [
-        "exiftool"
-      ],
-      "matchFileNames": [
-        ".tool-versions",
-        "Dockerfile"
-      ]
+      "matchPackageNames": ["exiftool"],
+      "matchFileNames": [".tool-versions", "Dockerfile"]
     },
     {
       "groupName": "dtext dockerfile",
       "groupSlug": "dtext-dockerfile",
-      "matchFileNames": [
-        "lib/dtext_rb/Dockerfile"
-      ]
+      "matchFileNames": ["lib/dtext_rb/Dockerfile"]
     }
   ]
 }
