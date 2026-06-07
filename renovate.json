@@ -3,6 +3,39 @@
   "extends": [
     "config:recommended"
   ],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "fileMatch": ["^\\.tool-versions$"],
+      "matchStrings": ["mozjpeg (?<currentValue>[^\\n]+)"],
+      "depNameTemplate": "mozilla/mozjpeg",
+      "datasourceTemplate": "github-releases",
+      "extractVersionTemplate": "^v(?<version>.+)$"
+    },
+    {
+      "customType": "regex",
+      "fileMatch": ["^\\.tool-versions$"],
+      "matchStrings": ["vips (?<currentValue>[^\\n]+)"],
+      "depNameTemplate": "libvips/libvips",
+      "datasourceTemplate": "github-releases",
+      "extractVersionTemplate": "^v(?<version>.+)$"
+    },
+    {
+      "customType": "regex",
+      "fileMatch": ["^\\.tool-versions$"],
+      "matchStrings": ["ffmpeg (?<currentValue>[^\\n]+)"],
+      "depNameTemplate": "FFmpeg/FFmpeg",
+      "datasourceTemplate": "github-tags",
+      "extractVersionTemplate": "^n(?<version>.+)$"
+    },
+    {
+      "customType": "regex",
+      "fileMatch": ["^\\.tool-versions$"],
+      "matchStrings": ["exiftool (?<currentValue>[^\\n]+)"],
+      "depNameTemplate": "exiftool/exiftool",
+      "datasourceTemplate": "github-tags"
+    }
+  ],
   "packageRules": [
     {
       "groupName": "{{manager}} non-major dependencies",
@@ -14,6 +47,42 @@
         "minor",
         "patch"
       ]
+    },
+    {
+      "groupName": "ruby version",
+      "groupSlug": "ruby-version",
+      "matchPackageNames": ["ruby"],
+      "matchManagers": ["asdf", "ruby-version", "dockerfile"]
+    },
+    {
+      "groupName": "node version",
+      "groupSlug": "node-version",
+      "matchPackageNames": ["node"],
+      "matchManagers": ["asdf", "dockerfile"]
+    },
+    {
+      "groupName": "mozjpeg",
+      "groupSlug": "mozjpeg",
+      "matchPackageNames": ["mozilla/mozjpeg"],
+      "matchManagers": ["dockerfile", "custom.regex"]
+    },
+    {
+      "groupName": "libvips",
+      "groupSlug": "libvips",
+      "matchPackageNames": ["libvips/libvips"],
+      "matchManagers": ["dockerfile", "custom.regex"]
+    },
+    {
+      "groupName": "ffmpeg",
+      "groupSlug": "ffmpeg",
+      "matchPackageNames": ["FFmpeg/FFmpeg"],
+      "matchManagers": ["dockerfile", "custom.regex"]
+    },
+    {
+      "groupName": "exiftool",
+      "groupSlug": "exiftool",
+      "matchPackageNames": ["exiftool/exiftool"],
+      "matchManagers": ["dockerfile", "custom.regex"]
     }
   ]
 }
