@@ -3,6 +3,58 @@
   "extends": ["config:recommended"],
   "separateMajorMinor": true,
   "separateMultipleMajor": true,
+  "customManagers": [
+    {
+      "customType": "regex",
+      "managerFilePatterns": ["/^Dockerfile$/", "/^\\.tool-versions$/"],
+      "matchStrings": ["ARG RUBY_VERSION=\"(?<currentValue>[^\"]+)\"", "ruby (?<currentValue>[^\\n]+)"],
+      "depNameTemplate": "ruby",
+      "datasourceTemplate": "ruby-version",
+      "packageNameTemplate": "ruby"
+    },
+    {
+      "customType": "regex",
+      "managerFilePatterns": ["/^Dockerfile$/", "/^\\.tool-versions$/"],
+      "matchStrings": ["ARG NODE_VERSION=\"(?<currentValue>[^\"]+)\"", "node (?<currentValue>[^\\n]+)"],
+      "depNameTemplate": "node",
+      "datasourceTemplate": "node-version"
+    },
+    {
+      "customType": "regex",
+      "managerFilePatterns": ["/^Dockerfile$/", "/^\\.tool-versions$/"],
+      "matchStrings": ["ARG MOZJPEG_VERSION=\"(?<currentValue>[^\"]+)\"", "mozjpeg (?<currentValue>[^\\n]+)"],
+      "depNameTemplate": "mozjpeg",
+      "datasourceTemplate": "github-releases",
+      "packageNameTemplate": "mozilla/mozjpeg",
+      "extractVersionTemplate": "^v(?<version>.+)$"
+    },
+    {
+      "customType": "regex",
+      "managerFilePatterns": ["/^Dockerfile$/", "/^\\.tool-versions$/"],
+      "matchStrings": ["ARG VIPS_VERSION=\"(?<currentValue>[^\"]+)\"", "vips (?<currentValue>[^\\n]+)"],
+      "depNameTemplate": "vips",
+      "datasourceTemplate": "github-releases",
+      "packageNameTemplate": "libvips/libvips",
+      "extractVersionTemplate": "^v(?<version>.+)$"
+    },
+    {
+      "customType": "regex",
+      "managerFilePatterns": ["/^Dockerfile$/", "/^\\.tool-versions$/"],
+      "matchStrings": ["ARG FFMPEG_VERSION=\"(?<currentValue>[^\"]+)\"", "ffmpeg (?<currentValue>[^\\n]+)"],
+      "depNameTemplate": "ffmpeg",
+      "datasourceTemplate": "github-tags",
+      "packageNameTemplate": "FFmpeg/FFmpeg",
+      "extractVersionTemplate": "^n(?<version>.+)$"
+    },
+    {
+      "customType": "regex",
+      "managerFilePatterns": ["/^Dockerfile$/", "/^\\.tool-versions$/"],
+      "matchStrings": ["ARG EXIFTOOL_VERSION=\"(?<currentValue>[^\"]+)\"", "exiftool (?<currentValue>[^\\n]+)"],
+      "depNameTemplate": "exiftool",
+      "datasourceTemplate": "github-tags",
+      "packageNameTemplate": "exiftool/exiftool"
+    }
+  ],
   "packageRules": [
     {
       "groupName": "{{manager}} non-major dependencies",

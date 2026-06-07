@@ -18,21 +18,15 @@
 
 # You must also update .ruby-version and the Gemfile when updating the Ruby version,
 # though that's done automatically if handled by Renovate.
-# renovate: datasource=ruby-version depName=ruby
 ARG RUBY_VERSION="4.0.2"
 ARG RUBY_MAJOR_VERSION="4.0"
 
 # Update .tool-versions too when updating these. Renovate should handle them automatically.
-# renovate: datasource=github-releases depName=mozjpeg packageName=mozilla/mozjpeg extractVersion=^v(?<version>.+)$
 ARG MOZJPEG_VERSION="4.1.5"
-# renovate: datasource=github-releases depName=vips packageName=libvips/libvips extractVersion=^v(?<version>.+)$
 ARG VIPS_VERSION="8.14.2"
-# renovate: datasource=github-tags depName=ffmpeg packageName=FFmpeg/FFmpeg extractVersion=^n(?<version>.+)$
 ARG FFMPEG_VERSION="7.1.1"
-# renovate: datasource=github-tags depName=exiftool packageName=exiftool/exiftool
 ARG EXIFTOOL_VERSION="13.50"
 ARG OPENRESTY_VERSION="1.29.2.3"
-# renovate: datasource=node-version depName=node
 ARG NODE_VERSION="24.14.1"
 ARG UBUNTU_VERSION="noble-20260217@sha256:186072bba1b2f436cbb91ef2567abca677337cfc786c86e107d25b7072feef0c"
 ARG UBUNTU_SNAPSHOT="20260401T000000Z"
