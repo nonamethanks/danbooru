@@ -14,37 +14,37 @@
     {
       "groupName": "ruby version",
       "groupSlug": "ruby-version",
-      "matchPackageNames": ["ruby"],
+      "matchDepNames": ["ruby"],
       "matchFileNames": [".tool-versions", ".ruby-version", "Dockerfile", "Gemfile"]
     },
     {
       "groupName": "node version",
       "groupSlug": "node-version",
-      "matchPackageNames": ["node"],
+      "matchDepNames": ["node"],
       "matchFileNames": [".tool-versions", "Dockerfile"]
     },
     {
       "groupName": "mozjpeg",
       "groupSlug": "mozjpeg",
-      "matchPackageNames": ["mozjpeg"],
+      "matchDepNames": ["mozjpeg"],
       "matchFileNames": [".tool-versions", "Dockerfile"]
     },
     {
       "groupName": "libvips",
       "groupSlug": "libvips",
-      "matchPackageNames": ["vips"],
+      "matchDepNames": ["vips"],
       "matchFileNames": [".tool-versions", "Dockerfile"]
     },
     {
       "groupName": "ffmpeg",
       "groupSlug": "ffmpeg",
-      "matchPackageNames": ["ffmpeg"],
+      "matchDepNames": ["ffmpeg"],
       "matchFileNames": [".tool-versions", "Dockerfile"]
     },
     {
       "groupName": "exiftool",
       "groupSlug": "exiftool",
-      "matchPackageNames": ["exiftool"],
+      "matchDepNames": ["exiftool"],
       "matchFileNames": [".tool-versions", "Dockerfile"]
     },
     {
