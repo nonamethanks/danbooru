@@ -23,13 +23,13 @@ ARG RUBY_VERSION="4.0.2"
 ARG RUBY_MAJOR_VERSION="4.0"
 
 # Update .tool-versions too when updating these. Renovate should handle them automatically.
-# renovate: datasource=github-releases packageName=mozilla/mozjpeg extractVersion=^v(?<version>.+)$
+# renovate: datasource=github-releases depName=mozilla/mozjpeg extractVersion=^v(?<version>.+)$
 ARG MOZJPEG_VERSION="4.1.5"
-# renovate: datasource=github-releases packageName=libvips/libvips extractVersion=^v(?<version>.+)$
+# renovate: datasource=github-releases depName=libvips/libvips extractVersion=^v(?<version>.+)$
 ARG VIPS_VERSION="8.14.2"
-# renovate: datasource=github-tags packageName=FFmpeg/FFmpeg extractVersion=^n(?<version>.+)$
+# renovate: datasource=github-tags depName=FFmpeg/FFmpeg extractVersion=^n(?<version>.+)$
 ARG FFMPEG_VERSION="7.1.1"
-# renovate: datasource=github-tags packageName=exiftool/exiftool
+# renovate: datasource=github-tags depName=exiftool/exiftool
 ARG EXIFTOOL_VERSION="13.50"
 ARG OPENRESTY_VERSION="1.29.2.3"
 # renovate: datasource=node-version depName=node
