@@ -3,6 +3,8 @@
   "extends": [
     "config:recommended"
   ],
+  "separateMajorMinor": true,
+  "separateMultipleMajor": true,
   "packageRules": [
     {
       "groupName": "{{manager}} non-major dependencies",
@@ -18,44 +20,70 @@
     {
       "groupName": "ruby version",
       "groupSlug": "ruby-version",
-      "matchPackageNames": ["ruby"],
-      "matchFileNames": [".tool-versions", ".ruby-version", "Dockerfile", "Gemfile"]
+      "matchPackageNames": [
+        "ruby"
+      ],
+      "matchFileNames": [
+        ".tool-versions",
+        ".ruby-version",
+        "Dockerfile",
+        "Gemfile"
+      ]
     },
     {
       "groupName": "node version",
       "groupSlug": "node-version",
-      "matchPackageNames": ["node"],
-      "matchFileNames": [".tool-versions", "Dockerfile"]
+      "matchPackageNames": [
+        "node"
+      ],
+      "matchFileNames": [
+        ".tool-versions",
+        "Dockerfile"
+      ]
     },
     {
       "groupName": "mozjpeg",
       "groupSlug": "mozjpeg",
-      "matchPackageNames": ["mozjpeg"],
-      "matchFileNames": [".tool-versions", "Dockerfile"]
+      "matchPackageNames": [
+        "mozjpeg"
+      ],
+      "matchFileNames": [
+        ".tool-versions",
+        "Dockerfile"
+      ]
     },
     {
       "groupName": "libvips",
       "groupSlug": "libvips",
-      "matchPackageNames": ["vips"],
-      "matchFileNames": [".tool-versions", "Dockerfile"]
+      "matchPackageNames": [
+        "vips"
+      ],
+      "matchFileNames": [
+        ".tool-versions",
+        "Dockerfile"
+      ]
     },
     {
       "groupName": "ffmpeg",
       "groupSlug": "ffmpeg",
-      "matchPackageNames": ["ffmpeg"],
-      "matchFileNames": [".tool-versions", "Dockerfile"]
+      "matchPackageNames": [
+        "ffmpeg"
+      ],
+      "matchFileNames": [
+        ".tool-versions",
+        "Dockerfile"
+      ]
     },
     {
       "groupName": "exiftool",
       "groupSlug": "exiftool",
-      "matchPackageNames": ["exiftool"],
-      "matchFileNames": [".tool-versions", "Dockerfile"]
-    },
-    {
-      "groupName": "shakapacker",
-      "groupSlug": "shakapacker",
-      "matchPackageNames": ["shakapacker"],
-      "matchManagers": ["bundler", "npm"]
+      "matchPackageNames": [
+        "exiftool"
+      ],
+      "matchFileNames": [
+        ".tool-versions",
+        "Dockerfile"
+      ]
     }
   ]
 }
