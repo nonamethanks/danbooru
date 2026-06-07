@@ -15,6 +15,9 @@
       ],
       "matchPackageNames": [
         "*"
+      ],
+      "excludePackageNames": [
+        "ruby", "node", "mozjpeg", "vips", "ffmpeg", "exiftool"
       ]
     },
     {
@@ -84,6 +87,11 @@
         ".tool-versions",
         "Dockerfile"
       ]
+    },
+    {
+      "groupName": "dtext dockerfile",
+      "groupSlug": "dtext-dockerfile",
+      "matchFileNames": ["lib/dtext_rb/Dockerfile"]
     }
   ]
 }
