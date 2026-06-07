@@ -18,7 +18,7 @@
 
 # You must also update .ruby-version and the Gemfile when updating the Ruby version,
 # though that's done automatically if handled by Renovate.
-ARG RUBY_VERSION="4.0.2"
+ARG RUBY_VERSION="4.0.5"
 ARG RUBY_MAJOR_VERSION="4.0"
 
 # Update .tool-versions too when updating these. Renovate should handle them automatically.
