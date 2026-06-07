@@ -16,8 +16,13 @@
       "matchPackageNames": [
         "*"
       ],
-      "excludePackageNames": [
-        "ruby", "node", "mozjpeg", "vips", "ffmpeg", "exiftool"
+      "excludeDepNames": [
+        "ruby",
+        "node",
+        "mozjpeg",
+        "vips",
+        "ffmpeg",
+        "exiftool"
       ]
     },
     {
@@ -91,7 +96,9 @@
     {
       "groupName": "dtext dockerfile",
       "groupSlug": "dtext-dockerfile",
-      "matchFileNames": ["lib/dtext_rb/Dockerfile"]
+      "matchFileNames": [
+        "lib/dtext_rb/Dockerfile"
+      ]
     }
   ]
 }
