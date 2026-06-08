@@ -24,7 +24,7 @@ ARG RUBY_MAJOR_VERSION="4.0"
 # Update .tool-versions too when updating these. Renovate should handle them automatically.
 ARG MOZJPEG_VERSION="4.1.5"
 ARG VIPS_VERSION="8.14.2"
-ARG FFMPEG_VERSION="7.1.1"
+ARG FFMPEG_VERSION="7.1.4"
 ARG EXIFTOOL_VERSION="13.50"
 ARG OPENRESTY_VERSION="1.29.2.3"
 ARG NODE_VERSION="24.14.1"

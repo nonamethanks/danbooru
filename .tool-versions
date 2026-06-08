@@ -4,6 +4,6 @@
 ruby 4.0.2
 mozjpeg 4.1.5
 vips 8.14.2
-ffmpeg 7.1.1
+ffmpeg 7.1.4
 exiftool 13.50
 node 24.14.1
