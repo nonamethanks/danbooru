@@ -1,4 +1,4 @@
-FROM ruby:3.4.5
+FROM ruby:3.4.9
 WORKDIR /dtext
 
 RUN <<EOS
