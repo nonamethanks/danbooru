@@ -5,12 +5,14 @@
   ],
   "separateMajorMinor": true,
   "separateMultipleMajor": true,
+  "minimumReleaseAge": "14 days",
   "packageRules": [
     {
       "groupName": "{{manager}} non-major dependencies",
       "groupSlug": "{{manager}}-minor-patch",
-      "matchPackagePatterns": [
-        "*"
+      "matchManagers": [
+        "npm",
+        "bundler"
       ],
       "matchUpdateTypes": [
         "minor",
