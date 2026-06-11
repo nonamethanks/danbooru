@@ -9,8 +9,12 @@
   "customManagers": [
     {
       "customType": "regex",
-      "fileMatch": ["^Dockerfile$"],
-      "matchStrings": ["ARG RUBY_VERSION=\"(?<currentValue>[\\d.]+)\""],
+      "fileMatch": [
+        "^Dockerfile$"
+      ],
+      "matchStrings": [
+        "ARG RUBY_VERSION=\"(?<currentValue>[\\d.]+)\""
+      ],
       "depNameTemplate": "ruby",
       "datasourceTemplate": "ruby-version"
     }
@@ -30,18 +34,22 @@
     },
     {
       "commitMessageTopic": "{{manager}} dependency {{depName}}",
-      "matchManagers": [
-        "npm",
-        "bundler"
-      ],
+      "commitMessageExtra": "to v{{newVersion}}",
       "matchUpdateTypes": [
         "major"
       ]
     },
     {
       "groupName": "Ruby version",
-      "matchDepNames": ["ruby"],
-      "matchFileNames": ["Dockerfile", ".ruby-version", "Gemfile", "Gemfile.lock"]
+      "matchDepNames": [
+        "ruby"
+      ],
+      "matchFileNames": [
+        "Dockerfile",
+        ".ruby-version",
+        "Gemfile",
+        "Gemfile.lock"
+      ]
     }
   ]
 }
