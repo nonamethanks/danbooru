@@ -6,6 +6,15 @@
   "separateMajorMinor": true,
   "separateMultipleMajor": true,
   "minimumReleaseAge": "14 days",
+  "customManagers": [
+    {
+      "customType": "regex",
+      "fileMatch": ["^Dockerfile$"],
+      "matchStrings": ["ARG RUBY_VERSION=\"(?<currentValue>[\\d.]+)\""],
+      "depNameTemplate": "ruby",
+      "datasourceTemplate": "ruby-version"
+    }
+  ],
   "packageRules": [
     {
       "groupName": "{{manager}} non-major dependencies",
@@ -18,6 +27,21 @@
         "minor",
         "patch"
       ]
+    },
+    {
+      "commitMessageTopic": "{{manager}} dependency {{depName}}",
+      "matchManagers": [
+        "npm",
+        "bundler"
+      ],
+      "matchUpdateTypes": [
+        "major"
+      ]
+    },
+    {
+      "groupName": "Ruby version",
+      "matchDepNames": ["ruby"],
+      "matchFileNames": ["Dockerfile", ".ruby-version", "Gemfile", "Gemfile.lock"]
     }
-  ],
+  ]
 }
