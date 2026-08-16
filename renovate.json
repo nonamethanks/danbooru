@@ -75,8 +75,8 @@
     {
       "description": "Better PR titles",
       "commitMessageTopic": "{{manager}} dependency {{depName}}",
-      "commitMessageExtra": "to {{updateType}} version {{newVersion}}",
-      "matchPackageNames": [
+      "commitMessageExtra": "from {{currentVersion}} to {{newVersion}}",
+      "matchPackagePatterns": [
         "*"
       ]
     },
