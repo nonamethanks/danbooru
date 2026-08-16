@@ -21,7 +21,7 @@
 ARG RUBY_VERSION="4.0.2"
 ARG RUBY_MAJOR_VERSION="4.0"
 
-# Some of these versions are monitored by renovate. The comments help renovate figure out where to check for new versions.
+# The comments help renovate figure out where to check for new versions of these dependencies.
 ARG MOZJPEG_VERSION="4.1.5" # github: mozilla/mozjpeg
 ARG VIPS_VERSION="8.14.2" # github: libvips/libvips
 ARG FFMPEG_VERSION="7.1.1" # github: FFmpeg/FFmpeg
