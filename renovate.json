@@ -94,7 +94,7 @@
     {
       "description": "Use short names instead of the full repo slur for the misc Dockerfile build tools",
       "matchDepTypes": ["docker-dependencies"],
-      "commitMessageTopic": "{{depName}}"
+      "commitMessageTopic": "Dockerfile dependency {{depName}}"
     },
     {
       "description": "Groups together shakapacker updates",
