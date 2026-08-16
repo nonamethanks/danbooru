@@ -27,7 +27,7 @@ ARG MOZJPEG_VERSION="4.1.5"
 # github: libvips/libvips
 ARG VIPS_VERSION="8.14.2"
 # github: FFmpeg/FFmpeg
-ARG FFMPEG_VERSION="7.1.1"
+ARG FFMPEG_VERSION="7.1.5"
 # github: exiftool/exiftool
 ARG EXIFTOOL_VERSION="13.50"
 # github: openresty/openresty
