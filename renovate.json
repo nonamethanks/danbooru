@@ -8,12 +8,34 @@
   "separateMajorMinor": true,
   "separateMultipleMajor": true,
   "minimumReleaseAge": "14 days",
+  "customManagers": [
+    {
+      "description": "Track the Ruby version pinned in the Dockerfile so it can be grouped with .ruby-version",
+      "customType": "regex",
+      "managerFilePatterns": ["/^Dockerfile$/"],
+      "matchStrings": ["ARG RUBY_VERSION=\"(?<currentValue>[^\"]+)\""],
+      "depNameTemplate": "ruby",
+      "datasourceTemplate": "ruby-version"
+    }
+  ],
   "packageRules": [
     {
+      "description": "Keep the Ruby version in .ruby-version and the Dockerfile in sync by updating them in the same PR/commit",
+      "groupName": "ruby version",
+      "matchDatasources": ["ruby-version"]
+    },
+    {
+      "description": "Don't automatically create PRs for non-package manager dependencies (such as Ruby version)",
       "matchManagers": ["dependency"],
       "prCreation": "approval"
     },
     {
+      "description": "Github Actions have the lowest priority so that they are only opened when nothing else needs an update",
+      "matchPackageNames": ["github-actions"],
+      "prPriority": -5
+    },
+    {
+      "description": "Group all non-major updates together",
       "groupName": "{{manager}} non-major dependencies",
       "groupSlug": "{{manager}}-minor-patch",
       "matchManagers": [
@@ -27,6 +49,7 @@
       ]
     },
     {
+      "description": "Better PR title for major updates",
       "commitMessageTopic": "{{manager}} dependency {{depName}}",
       "commitMessageExtra": "to major version {{newVersion}}",
       "matchUpdateTypes": [
@@ -34,6 +57,7 @@
       ]
     },
     {
+      "description": "Better PR title for non-major updates",
       "commitMessageTopic": "{{manager}} dependency {{depName}}",
       "commitMessageExtra": "to version {{newVersion}}",
       "matchUpdateTypes": [
