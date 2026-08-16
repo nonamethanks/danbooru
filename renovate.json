@@ -75,7 +75,8 @@
     {
       "description": "Better PR titles",
       "commitMessageTopic": "{{manager}} dependency {{depName}}",
-      "commitMessageExtra": "to {{updateType}} version {{newVersion}}"
+      "commitMessageExtra": "to {{updateType}} version {{newVersion}}",
+      "matchPackagePatterns": ["*"]
     },
     {
       "description": "Use the file path instead of just 'dockerfile' in the title for Dockerfiles outside the repo root, since there are multiple Dockerfiles in this repo",
