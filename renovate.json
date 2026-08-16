@@ -1,0 +1,33 @@
+
+
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended"
+  ],
+  "separateMajorMinor": true,
+  "separateMultipleMajor": true,
+  "minimumReleaseAge": "14 days",
+  "packageRules": [
+    {
+      "groupName": "{{manager}} non-major dependencies",
+      "groupSlug": "{{manager}}-minor-patch",
+      "matchManagers": [
+        "npm",
+        "bundler"
+      ],
+      "matchUpdateTypes": [
+        "minor",
+        "patch"
+      ]
+    },
+    {
+      "commitMessageTopic": "{{manager}} dependency {{depName}}",
+      "commitMessageExtra": "to v{{newVersion}}",
+      "matchUpdateTypes": [
+        "major"
+      ]
+    }
+  ]
+}
+
