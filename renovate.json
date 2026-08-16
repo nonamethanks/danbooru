@@ -30,9 +30,9 @@
       "prCreation": "approval"
     },
     {
-      "description": "Github Actions have the lowest priority so that they are only opened when nothing else needs an update",
-      "matchPackageNames": ["github-actions"],
-      "prPriority": -5
+      "description": "Give highest priority to npm/bundler updates",
+      "matchPackageNames": ["npm", "bundler"],
+      "prPriority": 100
     },
     {
       "description": "Group all non-major updates together",
