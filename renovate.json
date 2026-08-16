@@ -20,7 +20,16 @@
       "datasourceTemplate": "ruby-version"
     },
     {
-      "description": "Track any '# github: owner/repo' comment followed by an 'ARG FOO_VERSION=\"...\"' line in the Dockerfile, checking GitHub tags for new versions. Add a matching comment above the ARG to pick up a new dependency here, no config changes needed.",
+      "description": "Track the Node version pinned in the Dockerfile. Only LTS versions are suggested",
+      "customType": "regex",
+      "managerFilePatterns": ["/^Dockerfile$/"],
+      "matchStrings": ["ARG NODE_VERSION=\"(?<currentValue>[^\"]+)\""],
+      "depNameTemplate": "node",
+      "datasourceTemplate": "node-version",
+      "depTypeTemplate": "docker-dependencies"
+    },
+    {
+      "description": "Track any '# github: owner/repo' comment followed by an 'ARG FOO_VERSION=\"...\"' line in the Dockerfile, checking GitHub tags for new versions.",
       "customType": "regex",
       "managerFilePatterns": ["/^Dockerfile$/"],
       "matchStrings": [
@@ -41,7 +50,7 @@
     },
     {
       "description": "Don't automatically create PRs for non-package manager dependencies (such as Ruby version)",
-      "matchManagers": ["dependency"],
+      "matchManagers": ["regex"],
       "prCreation": "approval"
     },
     {
@@ -64,21 +73,9 @@
       ]
     },
     {
-      "description": "Better PR title for major updates",
+      "description": "Better PR titles",
       "commitMessageTopic": "{{manager}} dependency {{depName}}",
-      "commitMessageExtra": "to major version {{newVersion}}",
-      "matchUpdateTypes": [
-        "major"
-      ]
-    },
-    {
-      "description": "Better PR title for non-major updates",
-      "commitMessageTopic": "{{manager}} dependency {{depName}}",
-      "commitMessageExtra": "to version {{newVersion}}",
-      "matchUpdateTypes": [
-        "minor",
-        "patch"
-      ]
+      "commitMessageExtra": "to {{updateType}} version {{newVersion}}"
     },
     {
       "description": "Use the file path instead of just 'dockerfile' in the title for Dockerfiles outside the repo root, since there are multiple Dockerfiles in this repo",
