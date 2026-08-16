@@ -27,6 +27,14 @@
       "matchUpdateTypes": [
         "major"
       ]
+    },
+    {
+      "commitMessageTopic": "{{manager}} dependency {{depName}}",
+      "commitMessageExtra": "to version {{newVersion}}",
+      "matchUpdateTypes": [
+        "minor",
+        "patch"
+      ]
     }
   ]
 }
