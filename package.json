@@ -3,10 +3,10 @@
   "dependencies": {
     "@alpinejs/morph": "^3.14.9",
     "@alpinejs/persist": "^3.14.9",
-    "@babel/core": "^7.24.7",
-    "@babel/plugin-transform-runtime": "^7.24.7",
-    "@babel/preset-env": "^7.24.7",
-    "@babel/runtime": "^7.24.7",
+    "@babel/core": "^8.0.0",
+    "@babel/plugin-transform-runtime": "^8.0.0",
+    "@babel/preset-env": "^8.0.0",
+    "@babel/runtime": "^8.0.0",
     "@floating-ui/dom": "^1.7.1",
     "@fontsource/anton": "^5.2.5",
     "@fontsource/archivo-narrow": "^5.2.5",
@@ -49,7 +49,7 @@
     "webpack-merge": "^6.0.1"
   },
   "devDependencies": {
-    "@babel/cli": "^7.24.7",
+    "@babel/cli": "^8.0.0",
     "@eslint/js": "^10.0.1",
     "@webpack-cli/serve": "^3.0.1",
     "eslint": "^10.1.0",
