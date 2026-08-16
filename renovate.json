@@ -87,7 +87,7 @@
       "commitMessageTopic": "{{packageFile}} dependency {{depName}}"
     },
     {
-      "description": "Use 'ruby' title for main ruby version updates (must come after the 'Better PR title' rules above, since those match everything and would otherwise override this)",
+      "description": "Use 'ruby' title for main ruby version updates",
       "matchDatasources": ["ruby-version"],
       "commitMessageTopic": "{{depName}}"
     },
