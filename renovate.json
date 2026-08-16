@@ -23,7 +23,7 @@
     },
     {
       "commitMessageTopic": "{{manager}} dependency {{depName}}",
-      "commitMessageExtra": "to v{{newVersion}}",
+      "commitMessageExtra": "to major version {{newVersion}}",
       "matchUpdateTypes": [
         "major"
       ]
