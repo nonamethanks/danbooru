@@ -20,11 +20,11 @@
       "datasourceTemplate": "ruby-version"
     },
     {
-      "description": "Track any 'ARG FOO_VERSION=\"...\" # github: owner/repo' dependency pinned in the Dockerfile, checking GitHub tags for new versions. Add a matching comment to pick up a new dependency here, no config changes needed.",
+      "description": "Track any '# github: owner/repo' comment followed by an 'ARG FOO_VERSION=\"...\"' line in the Dockerfile, checking GitHub tags for new versions. Add a matching comment above the ARG to pick up a new dependency here, no config changes needed.",
       "customType": "regex",
       "managerFilePatterns": ["/^Dockerfile$/"],
       "matchStrings": [
-        "ARG (?<argName>[A-Z0-9]+)_VERSION=\"(?<currentValue>[^\"]+)\"\\s*#\\s*github:\\s*(?<packageName>[\\w.-]+/[\\w.-]+)"
+        "#\\s*github:\\s*(?<packageName>[\\w.-]+/[\\w.-]+)\\s*\\n\\s*ARG (?<argName>[A-Z0-9]+)_VERSION=\"(?<currentValue>[^\"]+)\""
       ],
       "depNameTemplate": "{{lowercase argName}}",
       "datasourceTemplate": "github-tags",
