@@ -50,7 +50,7 @@
     },
     {
       "description": "Don't automatically create PRs for non-package manager dependencies (such as Ruby version)",
-      "matchManagers": ["custom.regex"],
+      "matchManagers": ["regex"],
       "prCreation": "approval"
     },
     {
