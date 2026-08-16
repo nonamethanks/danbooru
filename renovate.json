@@ -10,11 +10,16 @@
   "minimumReleaseAge": "14 days",
   "packageRules": [
     {
+      "matchManagers": ["dependency"],
+      "prCreation": "approval"
+    },
+    {
       "groupName": "{{manager}} non-major dependencies",
       "groupSlug": "{{manager}}-minor-patch",
       "matchManagers": [
         "npm",
-        "bundler"
+        "bundler",
+        "github-actions"
       ],
       "matchUpdateTypes": [
         "minor",
