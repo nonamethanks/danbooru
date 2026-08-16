@@ -50,7 +50,7 @@
     },
     {
       "description": "Don't automatically create PRs for non-package manager dependencies (such as Ruby version)",
-      "matchManagers": ["regex"],
+      "matchManagers": ["custom.regex"],
       "prCreation": "approval"
     },
     {
@@ -76,7 +76,9 @@
       "description": "Better PR titles",
       "commitMessageTopic": "{{manager}} dependency {{depName}}",
       "commitMessageExtra": "to {{updateType}} version {{newVersion}}",
-      "matchPackagePatterns": ["*"]
+      "matchPackageNames": [
+        "*"
+      ]
     },
     {
       "description": "Use the file path instead of just 'dockerfile' in the title for Dockerfiles outside the repo root, since there are multiple Dockerfiles in this repo",
