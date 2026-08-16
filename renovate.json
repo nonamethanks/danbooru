@@ -18,6 +18,19 @@
       "matchStrings": ["ARG RUBY_VERSION=\"(?<currentValue>[^\"]+)\""],
       "depNameTemplate": "ruby",
       "datasourceTemplate": "ruby-version"
+    },
+    {
+      "description": "Track any 'ARG FOO_VERSION=\"...\" # github: owner/repo' dependency pinned in the Dockerfile, checking GitHub tags for new versions. Add a matching comment to pick up a new dependency here, no config changes needed.",
+      "customType": "regex",
+      "managerFilePatterns": ["/^Dockerfile$/"],
+      "matchStrings": [
+        "ARG (?<argName>[A-Z0-9]+)_VERSION=\"(?<currentValue>[^\"]+)\"\\s*#\\s*github:\\s*(?<packageName>[\\w.-]+/[\\w.-]+)"
+      ],
+      "depNameTemplate": "{{lowercase argName}}",
+      "datasourceTemplate": "github-tags",
+      "extractVersionTemplate": "^[a-zA-Z]?(?<version>\\d.*)$",
+      "versioningTemplate": "semver-coerced",
+      "depTypeTemplate": "docker-dependencies"
     }
   ],
   "packageRules": [
@@ -76,6 +89,11 @@
     {
       "description": "Use 'ruby' title for main ruby version updates (must come after the 'Better PR title' rules above, since those match everything and would otherwise override this)",
       "matchDatasources": ["ruby-version"],
+      "commitMessageTopic": "{{depName}}"
+    },
+    {
+      "description": "Use short names instead of the full repo slur for the misc Dockerfile build tools",
+      "matchDepTypes": ["docker-dependencies"],
       "commitMessageTopic": "{{depName}}"
     },
     {

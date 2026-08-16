@@ -21,10 +21,11 @@
 ARG RUBY_VERSION="4.0.2"
 ARG RUBY_MAJOR_VERSION="4.0"
 
-ARG MOZJPEG_VERSION="4.1.5"
-ARG VIPS_VERSION="8.14.2"
-ARG FFMPEG_VERSION="7.1.1"
-ARG EXIFTOOL_VERSION="13.50"
+# Some of these versions are monitored by renovate. The comments help renovate figure out where to check for new versions.
+ARG MOZJPEG_VERSION="4.1.5" # github: mozilla/mozjpeg
+ARG VIPS_VERSION="8.14.2" # github: libvips/libvips
+ARG FFMPEG_VERSION="7.1.1" # github: FFmpeg/FFmpeg
+ARG EXIFTOOL_VERSION="13.50" # github: exiftool/exiftool
 ARG OPENRESTY_VERSION="1.29.2.3"
 ARG NODE_VERSION="24.14.1"
 ARG UBUNTU_VERSION="noble-20260217@sha256:186072bba1b2f436cbb91ef2567abca677337cfc786c86e107d25b7072feef0c"
