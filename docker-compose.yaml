@@ -93,7 +93,7 @@ x-base-template: &base-template
   # or e.g. `ghcr.io/danbooru/danbooru:production-2024.01.12-055003-utc` to get a specific stable version.
   #
   # See https://github.com/danbooru/danbooru/pkgs/container/danbooru for a list of versions
-  image: ${DANBOORU_IMAGE:-ghcr.io/danbooru/danbooru:production}
+  image: ${DANBOORU_IMAGE:-ghcr.io/danbooru/danbooru:production@sha256:ab40de2bc7f7ac384bf49d6d2c000332545425b303c2ccef21610b48f32e29f5}
 
   read_only: true
   restart: unless-stopped
@@ -163,13 +163,13 @@ services:
   # https://github.com/danbooru/iqdb
   # https://hub.docker.com/repository/docker/evazion/iqdb
   iqdb:
-    image: evazion/iqdb
+    image: evazion/iqdb@sha256:3441fbe7b7e15da95624611c49821e457615bb5428cd9e08cb391a547c979622
     volumes:
       - "iqdb-data:/iqdb/data"
     command: ["http", "0.0.0.0", "5588", "/iqdb/data/iqdb.sqlite"]
 
   redis:
-    image: redis
+    image: redis@sha256:344e3945a0b431c8ff1eecd58c5573538126bd756f02fc7e218ddf1fc2546366
 
   postgres:
     image: ghcr.io/danbooru/postgres:16.1
@@ -186,7 +186,7 @@ services:
       - "danbooru-data:/var/lib/postgresql/data"
 
   nginx:
-    image: ${DANBOORU_IMAGE:-ghcr.io/danbooru/danbooru:production}
+    image: ${DANBOORU_IMAGE:-ghcr.io/danbooru/danbooru:production@sha256:ab40de2bc7f7ac384bf49d6d2c000332545425b303c2ccef21610b48f32e29f5}
     command: ["openresty", "-e", "/dev/stderr"]
     environment:
       # The external port to listen on. You can set this to 80 if you have nothing else listening on port 80.
@@ -211,10 +211,10 @@ services:
       - "danbooru-images:/images"
 
   autotagger:
-    image: ghcr.io/danbooru/autotagger:latest
+    image: ghcr.io/danbooru/autotagger:latest@sha256:9f0fa42bf0036b209c52b4ee5d9b79bdd5f0988a7d8143c71318506921a0fe8a
 
   sqs:
-    image: softwaremill/elasticmq-native
+    image: softwaremill/elasticmq-native@sha256:e4580ab9ad1bd5cd37b4ba04911bc5ccc8cd2d9ab4de56ece65acee71c24e05c
     expose:
     - 9324
     volumes:
@@ -229,7 +229,7 @@ services:
         condition: service_started
       postgres:
         condition: service_healthy
-    image: ghcr.io/danbooru/archives:latest
+    image: ghcr.io/danbooru/archives:latest@sha256:46eca16bc5f80bcf83d3a9a98a338b11dd63ab2aa3f288424343defb72660da4
     environment:
       <<: *sqs-env
       RUN: 1

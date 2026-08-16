@@ -71,7 +71,7 @@ x-base-template: &base-template
   #
   # If you set DANBOORU_IMAGE to something else, you have to use a development image because
   # production images don't contain the tools necessary to rebuild the JS/CSS files.
-  image: ${DANBOORU_IMAGE:-ghcr.io/danbooru/danbooru:development}
+  image: ${DANBOORU_IMAGE:-ghcr.io/danbooru/danbooru:development@sha256:c7d9c48ca87dbdc9f0f9d2d643bfcf995d89598efd27631cde64057065bbf652}
 
   restart: unless-stopped
   stdin_open: true
@@ -147,13 +147,13 @@ services:
   # https://github.com/danbooru/iqdb
   # https://hub.docker.com/repository/docker/evazion/iqdb
   iqdb:
-    image: evazion/iqdb
+    image: evazion/iqdb@sha256:3441fbe7b7e15da95624611c49821e457615bb5428cd9e08cb391a547c979622
     volumes:
       - "iqdb-data:/iqdb/data"
     command: ["http", "0.0.0.0", "5588", "/iqdb/data/iqdb.sqlite"]
 
   redis:
-    image: redis
+    image: redis@sha256:344e3945a0b431c8ff1eecd58c5573538126bd756f02fc7e218ddf1fc2546366
 
   postgres:
     image: ghcr.io/danbooru/postgres:16.1
@@ -170,7 +170,7 @@ services:
       - "danbooru-data:/var/lib/postgresql/data"
 
   nginx:
-    image: ${DANBOORU_IMAGE:-ghcr.io/danbooru/danbooru:development}
+    image: ${DANBOORU_IMAGE:-ghcr.io/danbooru/danbooru:development@sha256:c7d9c48ca87dbdc9f0f9d2d643bfcf995d89598efd27631cde64057065bbf652}
     command: ["openresty", "-e", "/dev/stderr"]
     environment:
       # The external port to listen on. You can set this to 80 if you have nothing else listening on port 80.
@@ -207,7 +207,7 @@ services:
     command: ["bin/shakapacker-dev-server"]
 
   sqs:
-    image: softwaremill/elasticmq-native
+    image: softwaremill/elasticmq-native@sha256:e4580ab9ad1bd5cd37b4ba04911bc5ccc8cd2d9ab4de56ece65acee71c24e05c
     expose:
     - 9324
     volumes:
@@ -222,7 +222,7 @@ services:
         condition: service_started
       postgres:
         condition: service_healthy
-    image: ghcr.io/danbooru/archives:latest
+    image: ghcr.io/danbooru/archives:latest@sha256:46eca16bc5f80bcf83d3a9a98a338b11dd63ab2aa3f288424343defb72660da4
     environment:
       <<: *sqs-env
       RUN: 1
