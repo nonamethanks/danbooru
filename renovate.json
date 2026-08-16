@@ -25,6 +25,11 @@
       "matchDatasources": ["ruby-version"]
     },
     {
+      "description": "Use 'ruby' title for main ruby version updates",
+      "matchDatasources": ["ruby-version"],
+      "commitMessageTopic": "{{depName}}"
+    },
+    {
       "description": "Don't automatically create PRs for non-package manager dependencies (such as Ruby version)",
       "matchManagers": ["dependency"],
       "prCreation": "approval"
@@ -66,7 +71,7 @@
       ]
     },
     {
-      "description": "Use the file path instead of just \"dockerfile\" in the title for Dockerfiles outside the repo root, since there are multiple Dockerfiles in this repo",
+      "description": "Use the file path instead of just 'dockerfile' in the title for Dockerfiles outside the repo root, since there are multiple Dockerfiles in this repo",
       "matchManagers": ["dockerfile"],
       "matchFileNames": ["!Dockerfile"],
       "commitMessageTopic": "{{packageFile}} dependency {{depName}}"
