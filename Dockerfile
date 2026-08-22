@@ -32,6 +32,11 @@ ARG FFMPEG_VERSION="9.0.1"
 ARG EXIFTOOL_VERSION="13.55"
 # github: openresty/openresty
 ARG OPENRESTY_VERSION="1.29.2.3"
+# github: denoland/deno
+ARG DENO_VERSION="2.9.5"
+# github: yt-dlp/yt-dlp
+ARG YTDLP_VERSION="2026.08.19"
+
 ARG NODE_VERSION="24.19.0"
 ARG UBUNTU_VERSION="resolute-20260724.1@sha256:678c6550cc43645e08669028bc177f50be4e7c5b8cca677067b1914d4afc7a03"
 # Remember to update the UBUNTU_SNAPSHOT ARG below when UBUNTU_VERSION is updated
@@ -283,6 +288,37 @@ RUN <<EOS
 EOS
 
 
+
+# Install NodeJS. Output is in /usr/local.
+FROM build-base AS build-ytdlp
+ARG YTDLP_VERSION
+ARG DENO_VERSION
+ARG TARGETARCH
+RUN <<EOS
+  case "$TARGETARCH" in
+    amd64)
+      DENO_ARCH="x86_64"
+      YTDLP_BINARY="yt-dlp_linux"
+      ;;
+    arm64)
+      DENO_ARCH="aarch64"
+      YTDLP_BINARY="yt-dlp_linux_aarch64"
+      ;;
+    *) echo "Unsupported architecture: $TARGETARCH" >&2; exit 1 ;;
+  esac
+
+  curl -fsSL "https://github.com/denoland/deno/releases/download/v${DENO_VERSION}/deno-${DENO_ARCH}-unknown-linux-gnu.zip" -o /tmp/deno.zip
+  unzip -qo /tmp/deno.zip -d /tmp/deno-zip
+  mv /tmp/deno-zip/deno /usr/local/bin/deno
+  chmod +x /usr/local/bin/deno
+  rm /tmp/deno.zip
+
+  curl -L "https://github.com/yt-dlp/yt-dlp/releases/download/${YTDLP_VERSION}/${YTDLP_BINARY}" -o /usr/local/bin/yt-dlp
+  chmod +x /usr/local/bin/yt-dlp
+
+  deno --version
+  echo "yt-dlp version: $(yt-dlp --version)"
+EOS
 
 # Build Ruby gems. Output is in /home/danbooru/bundle.
 FROM build-ruby AS build-gems
