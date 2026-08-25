@@ -62,24 +62,7 @@
       "depTypeTemplate": "docker-dependencies"
     }
   ],
-  "packageRules": [
-    {
-      "description": "Force bundler to process gem updates from Gemfile.lock instead of Gemfile.",
-      "matchManagers": [
-        "bundler"
-      ],
-      "rangeStrategy": "update-lockfile"
-    },
-    {
-      "description": "Only run lock file maintenance on package-lock.json. Our Gemfile does not specify max versions, so refreshing Gemfile.lock risks updating everything.",
-      "matchManagers": [
-        "bundler"
-      ],
-      "matchUpdateTypes": [
-        "lockFileMaintenance"
-      ],
-      "enabled": false
-    },
+  "packageRules":
     {
       "description": "Give highest priority to npm/bundler updates",
       "matchPackageNames": [
@@ -136,7 +119,7 @@
       "commitMessageTopic": "{{depName}}"
     },
     {
-      "description": "Use short names instead of the full repo slur for the misc Dockerfile build tools",
+      "description": "Use short names instead of the full repo slug for the misc Dockerfile build tools",
       "matchDepTypes": [
         "docker-dependencies"
       ],
