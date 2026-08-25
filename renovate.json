@@ -96,7 +96,7 @@
     {
       "description": "Better PR titles",
       "commitMessageTopic": "{{manager}} dependency {{depName}}",
-      "commitMessageExtra": "{{#if displayFrom}}from {{{displayFrom}}} {{/if}}{{#if displayTo}}to {{{displayTo}}}{{/if}}",
+      "commitMessageExtra": "{{#if displayFrom}}from `{{{displayFrom}}}` {{/if}}{{#if displayTo}}to `{{{displayTo}}}`{{/if}}",
       "matchPackageNames": [
         "*"
       ]
