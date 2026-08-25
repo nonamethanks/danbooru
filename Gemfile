@@ -20,7 +20,7 @@ gem "rakismet", "~> 1"
 gem "activemodel-serializers-xml", "~> 1"
 gem "shakapacker", "~> 10"
 gem "rake", "~> 13"
-gem "redis", "~> 5"
+gem "redis", "~> 6"
 gem "builder", "~> 3"
 # gem 'did_you_mean' # github.com/yuki24/did_you_mean/issues/117
 gem "puma", "~> 7"
@@ -93,8 +93,8 @@ group :test do
   gem "simplecov-cobertura", "~> 4", require: false
   gem "minitest", "~> 6"
   gem "minitest-reporters", "~> 1", require: "minitest/reporters"
-  gem "mock_redis", "~> 0.55"
+  gem "mock_redis", "~> 0"
   gem "capybara", "~> 3"
   gem "selenium-webdriver", "~> 4"
-  gem "testcontainers-core", "~> 0.2", require: false
+  gem "testcontainers-core", "~> 0", require: false
 end
