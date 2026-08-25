@@ -71,16 +71,6 @@
       "rangeStrategy": "update-lockfile"
     },
     {
-      "description": "Only run lock file maintenance on package-lock.json. Our Gemfile does not specify max versions, so refreshing Gemfile.lock risks updating everything.",
-      "matchManagers": [
-        "bundler"
-      ],
-      "matchUpdateTypes": [
-        "lockFileMaintenance"
-      ],
-      "enabled": false
-    },
-    {
       "description": "Give highest priority to npm/bundler updates",
       "matchPackageNames": [
         "npm",
@@ -113,7 +103,7 @@
     {
       "description": "Better PR titles",
       "commitMessageTopic": "{{manager}} dependency {{depName}}",
-      "commitMessageExtra": "{{#if displayFrom}}from {{{displayFrom}}} {{/if}}{{#if displayTo}}to {{{displayTo}}}{{/if}}",
+      "commitMessageExtra": "{{#if displayFrom}}from `{{{displayFrom}}}` {{/if}}{{#if displayTo}}to `{{{displayTo}}}`{{/if}}",
       "matchPackageNames": [
         "*"
       ]
@@ -136,7 +126,7 @@
       "commitMessageTopic": "{{depName}}"
     },
     {
-      "description": "Use short names instead of the full repo slur for the misc Dockerfile build tools",
+      "description": "Use short names instead of the full repo slug for the misc Dockerfile build tools",
       "matchDepTypes": [
         "docker-dependencies"
       ],
