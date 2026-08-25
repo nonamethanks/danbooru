@@ -18,7 +18,7 @@
     "lib/dtext_rb/Dockerfile"
   ],
   "labels": ["Upstream"],
-  "semanticCommits": true,
+  "semanticCommits": "enabled",
   "customManagers": [
     {
       "description": "Track the Ruby version pinned in the Dockerfile so it can be grouped with .ruby-version",
