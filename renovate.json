@@ -62,7 +62,7 @@
       "depTypeTemplate": "docker-dependencies"
     }
   ],
-  "packageRules":
+  "packageRules": [
     {
       "description": "Give highest priority to npm/bundler updates",
       "matchPackageNames": [
