@@ -14,11 +14,11 @@
   "separateMultipleMajor": true,
   "minimumReleaseAge": "14 days",
   "prConcurrentLimit": 5,
-  "commitMessageAction": "update",
   "ignorePaths": [
     "lib/dtext_rb/Dockerfile"
   ],
   "labels": ["Upstream"],
+  "semanticCommits": true,
   "customManagers": [
     {
       "description": "Track the Ruby version pinned in the Dockerfile so it can be grouped with .ruby-version",
@@ -92,53 +92,6 @@
       ]
     },
     {
-      "description": "Base commit message.",
-      "matchPackageNames": [
-        "*"
-      ],
-      "commitMessageTopic": "{{depName}}",
-      "commitMessageExtra": "{{#if currentVersion}}from {{{currentVersion}}} {{/if}}{{#if newVersion}}to {{{newVersion}}}{{/if}}"
-    },
-    {
-      "description": "Prefix: Gemfile",
-      "matchManagers": [
-        "bundler"
-      ],
-      "commitMessagePrefix": "Gemfile:"
-    },
-    {
-      "description": "Prefix: npm",
-      "matchManagers": [
-        "npm"
-      ],
-      "commitMessagePrefix": "npm:"
-    },
-    {
-      "description": "Prefix: Dockerfile",
-      "matchManagers": [
-        "dockerfile",
-        "custom.regex"
-      ],
-      "commitMessagePrefix": "Dockerfile:"
-    },
-    {
-      "description": "Prefix: GitHub Actions",
-      "matchManagers": [
-        "github-actions"
-      ],
-      "commitMessagePrefix": "Actions:"
-    },
-    {
-      "description": "Use the file path for Dockerfiles outside the repo root, since there are multiple Dockerfiles in this repo",
-      "matchManagers": [
-        "dockerfile"
-      ],
-      "matchFileNames": [
-        "!Dockerfile"
-      ],
-      "commitMessagePrefix": "{{packageFile}}:"
-    },
-    {
       "description": "Keep the Ruby version in .ruby-version, the Dockerfile, and the Gemfile in sync by updating them in the same PR/commit.",
       "groupName": "ruby version",
       "matchDatasources": [
@@ -147,13 +100,6 @@
       "rangeStrategy": "bump",
       "commitMessagePrefix": "ruby:",
       "commitMessageTopic": "version"
-    },
-    {
-      "description": "Groups together shakapacker updates",
-      "matchPackageNames": [
-        "shakapacker"
-      ],
-      "groupName": "shakapacker-bundler-stack"
     }
   ]
 }
