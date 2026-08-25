@@ -1,5 +1,3 @@
-
-
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
@@ -16,6 +14,7 @@
   "separateMultipleMajor": true,
   "minimumReleaseAge": "14 days",
   "prConcurrentLimit": 5,
+  "commitMessageAction": "update",
   "ignorePaths": [
     "lib/dtext_rb/Dockerfile"
   ],
@@ -93,44 +92,61 @@
       ]
     },
     {
-      "description": "Keep the Ruby version in .ruby-version, the Dockerfile, and the Gemfile ruby in sync by updating them in the same PR/commit. This must come after the 'Force bundler to process gem updates from Gemfile.lock' rule.",
-      "groupName": "ruby version",
-      "matchDatasources": [
-        "ruby-version"
-      ],
-      "rangeStrategy": "bump"
-    },
-    {
-      "description": "Better PR titles",
-      "commitMessageTopic": "{{manager}} dependency {{depName}}",
-      "commitMessageExtra": "{{#if displayFrom}}from `{{{displayFrom}}}` {{/if}}{{#if displayTo}}to `{{{displayTo}}}`{{/if}}",
+      "description": "Base commit message.",
       "matchPackageNames": [
         "*"
-      ]
+      ],
+      "commitMessageTopic": "{{depName}}",
+      "commitMessageExtra": "{{#if currentVersion}}from {{{currentVersion}}} {{/if}}{{#if newVersion}}to {{{newVersion}}}{{/if}}"
     },
     {
-      "description": "Use the file path instead of just 'dockerfile' in the title for Dockerfiles outside the repo root, since there are multiple Dockerfiles in this repo",
+      "description": "Prefix: Gemfile",
+      "matchManagers": [
+        "bundler"
+      ],
+      "commitMessagePrefix": "Gemfile:"
+    },
+    {
+      "description": "Prefix: npm",
+      "matchManagers": [
+        "npm"
+      ],
+      "commitMessagePrefix": "npm:"
+    },
+    {
+      "description": "Prefix: Dockerfile",
+      "matchManagers": [
+        "dockerfile",
+        "custom.regex"
+      ],
+      "commitMessagePrefix": "Dockerfile:"
+    },
+    {
+      "description": "Prefix: GitHub Actions",
+      "matchManagers": [
+        "github-actions"
+      ],
+      "commitMessagePrefix": "Actions:"
+    },
+    {
+      "description": "Use the file path for Dockerfiles outside the repo root, since there are multiple Dockerfiles in this repo",
       "matchManagers": [
         "dockerfile"
       ],
       "matchFileNames": [
         "!Dockerfile"
       ],
-      "commitMessageTopic": "{{packageFile}} dependency {{depName}}"
+      "commitMessagePrefix": "{{packageFile}}:"
     },
     {
-      "description": "Use 'ruby' title for main ruby version updates",
+      "description": "Keep the Ruby version in .ruby-version, the Dockerfile, and the Gemfile in sync by updating them in the same PR/commit.",
+      "groupName": "ruby version",
       "matchDatasources": [
         "ruby-version"
       ],
-      "commitMessageTopic": "{{depName}}"
-    },
-    {
-      "description": "Use short names instead of the full repo slug for the misc Dockerfile build tools",
-      "matchDepTypes": [
-        "docker-dependencies"
-      ],
-      "commitMessageTopic": "dockerfile dependency {{depName}}"
+      "rangeStrategy": "bump",
+      "commitMessagePrefix": "ruby:",
+      "commitMessageTopic": "version"
     },
     {
       "description": "Groups together shakapacker updates",
@@ -141,4 +157,3 @@
     }
   ]
 }
-
