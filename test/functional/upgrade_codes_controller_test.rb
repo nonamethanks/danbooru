@@ -5,10 +5,19 @@ class UserUpgradesControllerTest < ActionDispatch::IntegrationTest
     context "index action" do
       should "render for the owner" do
         create(:upgrade_code)
-        @user = create(:owner_user)
+        @user = create(:superadmin_user)
+        create(:superadmin_user)
         get_auth upgrade_codes_path, @user
 
         assert_response :success
+      end
+
+      should "not render for other superadmins" do
+        create(:upgrade_code)
+        create(:superadmin_user)
+        get_auth upgrade_codes_path, create(:superadmin_user)
+
+        assert_response 403
       end
 
       should "not render for non-privileged users" do

@@ -12,7 +12,7 @@
       </p>
 
       <%= edit_form_for(@user, url: admin_user_path(@user)) do |f| %>
-        <%= f.input :level, collection: User.level_hash.select { |name, level| level > @user.level && level < CurrentUser.user.level }.to_a, include_blank: false %>
+        <%= f.input :level, collection: User.level_hash.select { |name, level| level > @user.level && (level < CurrentUser.user.level || CurrentUser.user.is_owner?) }.to_a, include_blank: false %>
         <%= f.submit_button "Promote", "data-confirm": "Are you sure you want to promote #{@user.name}?" %>
       <% end %>
     </div>

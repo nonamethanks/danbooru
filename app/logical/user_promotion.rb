@@ -45,9 +45,9 @@ class UserPromotion
       raise User::PrivilegeError, "You can't promote or demote other users"
     elsif promoter == user
       raise User::PrivilegeError, "You can't promote or demote yourself"
-    elsif user.level >= promoter.level
+    elsif user.level >= promoter.level && !promoter.is_owner?
       raise User::PrivilegeError, "You can't promote other users to your rank or above"
-    elsif user.level_was >= promoter.level
+    elsif user.level_was >= promoter.level && !promoter.is_owner?
       raise User::PrivilegeError, "You can't promote or demote other users at your rank or above"
     elsif !user.valid?
       raise User::PrivilegeError, user.errors.full_messages.join(", ")

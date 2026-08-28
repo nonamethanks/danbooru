@@ -33,7 +33,7 @@ class ApiKey < ApplicationRecord
   has_secure_token :key
 
   def self.visible(user)
-    if user.is_owner?
+    if user.is_superadmin?
       all
     else
       where(user: user)
