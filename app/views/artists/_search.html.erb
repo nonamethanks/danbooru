@@ -4,5 +4,11 @@
   <%= f.input :is_deleted, label: "Deleted?", collection: [["Yes", true], ["No", false]], include_blank: true, selected: params[:search][:is_deleted] %>
   <%= f.input :has_tag, label: "Has tag?", collection: [["Yes", true], ["No", false]], include_blank: true, selected: params[:search][:has_tag] %>
   <%= f.input :order, collection: [["Recently created", "created_at"], ["Last updated", "updated_at"], ["Name", "name"], ["Post count", "post_count"]], selected: params[:search][:order] %>
-  <%= f.submit "Search" %>
+  <div class="input">
+    <label></label>
+    <div class="flex items-center gap-2">
+      <%= f.submit "Search" %>
+      <%= link_to "Advanced", search_artists_path(search: params[:search].permit!) %>
+    </div>
+  </div>
 <% end %>

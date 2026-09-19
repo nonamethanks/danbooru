@@ -60,6 +60,7 @@ Rails.application.routes.draw do
       put :unban
     end
     collection do
+      get :search
       get :show_or_new
     end
   end

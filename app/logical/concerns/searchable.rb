@@ -164,6 +164,21 @@ module Searchable
     where_numeric_matches(qualified_column, value)
   end
 
+  # Find records that match any of the given values. The block builds a relation from the current relation for one value.
+  # Blank values are ignored, and if there are no values the current relation is returned unchanged.
+  #
+  # @example Artist.where_any(%w[a b]) { |artists, name| artists.where(name: name) } # WHERE name = 'a' OR name = 'b'
+  def where_any(values, &block)
+    values = Array.wrap(values).compact_blank
+    values.map { |value| block.call(all, value) }.reduce(&:or) || all
+  end
+
+  # Find records that match all of the given values. Works like `where_any`, but the relations are ANDed together.
+  def where_all(values, &block)
+    values = Array.wrap(values).compact_blank
+    values.map { |value| block.call(all, value) }.reduce(&:and_relation) || all
+  end
+
   # where_union_all(A, B, C) is like `WHERE A OR B OR C`, except it may be faster if the conditions are disjoint.
   # where_union_all(A, B) does `SELECT * FROM table WHERE id IN (SELECT id FROM table WHERE A UNION ALL SELECT id FROM table WHERE B)`
   def where_union_all(*, **)
