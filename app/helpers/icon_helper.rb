@@ -189,6 +189,10 @@ module IconHelper
     svg_icon_tag("plus", viewBox: "0 0 448 512", **options)
   end
 
+  def calendar_icon(**options)
+    svg_icon_tag("calendar", viewBox: "0 0 448 512", **options)
+  end
+
   def caret_down_icon(**options)
     svg_icon_tag("caret-down", viewBox: "0 0 320 512", **options)
   end

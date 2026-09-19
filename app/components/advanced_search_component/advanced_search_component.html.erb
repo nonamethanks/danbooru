@@ -1,0 +1,65 @@
+<%= form_with url: url, method: :get, scope: :search, local: true, html: { autocomplete: "off", novalidate: true, class: "search-form inline-form simple_form advanced-search", "data-validate-form": "true", "x-data": "{ arrays: #{array_state.to_json} }" } do |f| %>
+  <% fields.each do |field| %>
+    <% if field.type == :array %>
+      <% state = "arrays.#{field.key}" %>
+      <template x-for="(value, i) in <%= state %>.values" :key="i">
+        <div class="input">
+          <label>
+            <span x-show="i === 0"><%= field.label %></span>
+          </label>
+          <div class="flex items-center gap-1">
+            <input type="text" x-model="<%= state %>.values[i]" :name="<%= state %>.values[i] ? (<%= state %>.values.length > 1 ? <%= state %>.name : '<%= input_name(field.params.first.last) %>') + '[]' : null">
+            <a href="#" class="px-1" x-on:click.prevent="i === <%= state %>.values.length - 1 ? <%= state %>.values.push('') : <%= state %>.values.splice(i, 1)" x-text="i === <%= state %>.values.length - 1 ? '+' : '&minus;'" :title="i === <%= state %>.values.length - 1 ? 'Add another' : 'Remove'"></a>
+            <select x-model="<%= state %>.name" x-show="i === 0 && <%= state %>.values.length > 1"><%= match_options(field) %></select>
+          </div>
+        </div>
+      </template>
+    <% else %>
+      <div class="input">
+        <%= label_tag "search_#{field.key}", field.label %>
+
+        <% if field.type == :boolean %>
+          <div class="flex items-center gap-2">
+            <%= select_tag input_name(selected_path(field)), options_for_select([["Yes", "true"], ["No", "false"]], value(field)), include_blank: true, id: "search_#{field.key}" %>
+          </div>
+        <% elsif field.type == :string %>
+          <div x-data="{ name: '<%= input_name(selected_path(field)) %>' }" class="flex items-center gap-2">
+            <%= text_field_tag input_name(selected_path(field)), value(field), id: "search_#{field.key}", ":name": "name" %>
+            <%= select_tag nil, match_options(field), id: nil, "x-model": "name" %>
+          </div>
+        <% elsif field.type == :datetime %>
+          <div x-data class="relative flex items-center gap-2">
+            <%= text_field_tag input_name(selected_path(field)), value(field), id: "search_#{field.key}", placeholder: "e.g. <1w, >2020-01-01", "x-ref": "text" %>
+            <a href="#" title="Pick a date" x-on:click.prevent="$refs.picker.showPicker()"><%= calendar_icon %></a>
+            <%= tag.input type: "date", class: "advanced-search-date-picker", tabindex: -1, "aria-hidden": true, "x-ref": "picker", "x-on:change": "$refs.text.value = $event.target.value" %>
+          </div>
+        <% else %>
+          <div class="flex items-center gap-2">
+            <%= text_field_tag input_name(selected_path(field)), value(field), id: "search_#{field.key}", placeholder: "e.g. >1, <1000, 1000..2000" %>
+          </div>
+        <% end %>
+      </div>
+    <% end %>
+  <% end %>
+
+  <% if orders.present? %>
+    <div class="input">
+      <%= f.label :order, "Order" %>
+      <div x-data="{ order: '<%= selected_order.first %>', direction: '<%= selected_order.last %>' }" class="flex items-center gap-2">
+        <input type="hidden" name="search[order]" value="<%= selected_order.join("_") %>" :value="order + '_' + direction">
+        <%= select_tag nil, options_for_select(orders, selected_order.first), id: "search_order", "x-model": "order" %>
+        <%= select_tag nil, options_for_select([["Ascending", "asc"], ["Descending", "desc"]], selected_order.last), id: nil, "x-model": "direction" %>
+      </div>
+    </div>
+  <% end %>
+
+  <div class="input">
+    <%= label_tag :limit, "Limit" %>
+    <div x-data="{ limit: <%= helpers.params[:limit].to_s.to_json %> }" class="flex items-center gap-2">
+      <%= number_field_tag :limit, helpers.params[:limit], placeholder: Danbooru.config.posts_per_page, min: 1, max: 1000, class: "advanced-search-limit", "x-model": "limit", ":name": "limit ? 'limit' : null" %>
+      <span class="text-muted text-xs">max 1000, smaller is faster</span>
+    </div>
+  </div>
+
+  <%= f.submit "Search", name: nil %>
+<% end %>

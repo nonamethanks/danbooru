@@ -1,0 +1,16 @@
+<div id="c-artists">
+  <div id="a-search">
+    <h1>Search Artists</h1>
+
+    <%= render AdvancedSearchComponent.new(
+      model: Artist,
+      url: artists_path,
+      params: search_params,
+      orders: [["Created At", "created_at"], ["Updated At", "updated_at"], ["Name", "name"], ["Post count", "post_count"]],
+      extra_fields: { tag: %i[post_count] },
+      custom_fields: [AdvancedSearchComponent::Field.new("URLs", :array, [["Matches any", %w[url_matches]], ["Matches all", %w[url_matches_all]]])],
+    ) %>
+  </div>
+</div>
+
+<%= render "secondary_links" %>

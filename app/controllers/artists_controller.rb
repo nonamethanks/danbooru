@@ -12,6 +12,10 @@ class ArtistsController < ApplicationController
     respond_with(@artists)
   end
 
+  def search
+    authorize Artist
+  end
+
   def show
     @artist = authorize Artist.find(params[:id])
     raise PageRemovedError if request.format.html? && @artist.is_banned? && !policy(@artist).can_view_banned?

@@ -259,15 +259,6 @@ class Artist < ApplicationRecord
       end
     end
 
-    def urls_match(urls)
-      urls = Array.wrap(urls).flat_map(&:split)
-      return all if urls.empty?
-
-      urls.map do |url|
-        url_matches(url)
-      end.reduce(&:or)
-    end
-
     def url_matches(query)
       query = query.strip
 
@@ -313,21 +304,24 @@ class Artist < ApplicationRecord
         q = q.any_name_or_url_matches(params[:any_name_or_url_matches])
       end
 
-      if params[:url_matches].present?
-        q = q.urls_match(params[:url_matches])
-      end
+      q = q.where_any(Array.wrap(params[:url_matches]).flat_map(&:split)) { |artists, url| artists.url_matches(url) }
+      q = q.where_all(Array.wrap(params[:url_matches_all]).flat_map(&:split)) { |artists, url| artists.url_matches(url) }
 
       if params[:url_count].present?
         q = q.with_url_count.where_numeric_matches(:url_count, params[:url_count])
       end
 
-      case params[:order]
+      column, direction = params[:order].to_s.downcase.match(/\A(.+?)(?:_(asc|desc))?\z/)&.captures
+
+      case column
       when "name"
-        q = q.order("artists.name")
+        q = q.order(name: direction || :asc)
       when "updated_at"
-        q = q.order("artists.updated_at desc")
+        q = q.order(updated_at: direction || :desc)
+      when "created_at"
+        q = q.order(id: direction || :desc)
       when "post_count"
-        q = q.left_outer_joins(:tag).order("tags.post_count desc nulls last").order("artists.name")
+        q = q.left_outer_joins(:tag).order(Tag.arel_table[:post_count].public_send(direction || :desc).nulls_last).order(:name)
       else
         q = q.apply_default_order(params)
       end

@@ -1,0 +1,20 @@
+// A date input that is only used to open the browser's date picker. It's invisible, but positioned so the picker opens next to the text input.
+.advanced-search-date-picker {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+// Just wide enough for a 4 digit number plus the spinner buttons.
+.advanced-search-limit {
+  width: 4rem;
+}
+
+// inline-form sets a tall line-height on each row, which is only reset for direct children. Reset it for our wrappers.
+.advanced-search > div.input > div {
+  line-height: 1em;
+}
