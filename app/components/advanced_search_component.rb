@@ -20,16 +20,18 @@ class AdvancedSearchComponent < ApplicationComponent
   #
   # @!attribute label [String] The label shown next to the input.
   # @!attribute type [Symbol] One of :string, :numeric, :datetime, :boolean or :array.
-  # @!attribute params [Array<Array>] The `[label, path]` pairs of the search params the input can submit, where `path`
-  #   is the list of keys under `search` (e.g. `%w[tag post_count]`). If there's more than one, the user picks which one
-  #   to use with a dropdown.
+  # @!attribute params [Array<Array>] The `[label, path, value]` entries of the search params the input can submit, where
+  #   `path` is the list of keys under `search` (e.g. `%w[tag post_count]`), and `value` is an optional fixed value to
+  #   submit instead of the input's value (e.g. `group_name_present=false`). If there's more than one, the user picks
+  #   which one to use with a dropdown.
   Field = Data.define(:label, :type, :params) do
     def key
-      params.first.last.join("_")
+      params.first.second.join("_")
     end
   end
 
   STRING_MATCH_TYPES = [["Wildcard", "ilike"], ["Exact", "eq"], ["Regex", "regex"]].freeze
+  BLANK_MATCH_TYPES = [["Not empty", "present", "true"], ["Empty", "present", "false"]].freeze
   ARRAY_MATCH_TYPES = [["Matches any", "include_any_array"], ["Matches all", "include_all_array"]].freeze
 
   attr_reader :model, :url, :params, :orders, :extra_fields, :custom_fields
@@ -64,14 +66,26 @@ class AdvancedSearchComponent < ApplicationComponent
     "search#{path.map { "[#{it}]" }.join}"
   end
 
-  # @return [Array<String>] The path of the search param that is currently in use: the one present in the params, else the first.
-  def selected_path(field)
-    field.params.map(&:last).find { |path| params.dig(*path).present? } || field.params.first.last
+  # @return [Array] The `[label, path, value]` entry of the search param that is currently in use: the one present in
+  #   the params (with a matching value, if it has a fixed value), else the first.
+  def selected_param(field)
+    field.params.find { |_, path, fixed| fixed.nil? ? params.dig(*path).present? : params.dig(*path) == fixed } || field.params.first
   end
 
-  # @return [String, Array<String>, nil] The current value of the field's input.
+  # @return [Array<String>] The path of the search param that is currently in use.
+  def selected_path(field)
+    selected_param(field).second
+  end
+
+  # @return [String, Array<String>, nil] The current value of the field's input, or nil if the param has a fixed value.
   def value(field)
-    params.dig(*selected_path(field))
+    params.dig(*selected_path(field)) if selected_param(field).third.nil?
+  end
+
+  # @return [String] The value of a param's option in the match dropdown: the input name, plus the fixed value if it
+  #   has one. e.g. "search[name_ilike]" or "search[group_name_present]=false".
+  def match_value(path, fixed = nil)
+    [input_name(path), fixed].compact.join("=")
   end
 
   # @return [Array<String>] The current values of an array field's inputs, with one empty value if there are none.
@@ -94,7 +108,7 @@ class AdvancedSearchComponent < ApplicationComponent
 
   # @return [ActiveSupport::SafeBuffer] The <option> tags for the dropdown that picks which param a field submits.
   def match_options(field)
-    helpers.options_for_select(field.params.map { |label, path| [label, input_name(path)] }, input_name(selected_path(field)))
+    helpers.options_for_select(field.params.map { |label, path, fixed| [label, match_value(path, fixed)] }, match_value(*selected_param(field).drop(1)))
   end
 
   private
@@ -109,6 +123,8 @@ class AdvancedSearchComponent < ApplicationComponent
 
     if column.array?
       Field.new(label, :array, match_types(column, ARRAY_MATCH_TYPES, prefix))
+    elsif column.type.in?(%i[string text]) && (column.null || column.default == "")
+      Field.new(label, :string, match_types(column, STRING_MATCH_TYPES + BLANK_MATCH_TYPES, prefix))
     elsif column.type.in?(%i[string text])
       Field.new(label, :string, match_types(column, STRING_MATCH_TYPES, prefix))
     elsif column.type == :boolean
@@ -121,6 +137,6 @@ class AdvancedSearchComponent < ApplicationComponent
   end
 
   def match_types(column, types, prefix)
-    types.map { |label, suffix| [label, [*prefix, "#{column.name}_#{suffix}"]] }
+    types.map { |label, suffix, fixed| [label, [*prefix, "#{column.name}_#{suffix}"], fixed] }
   end
 end

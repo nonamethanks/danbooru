@@ -8,7 +8,10 @@
       params: search_params,
       orders: [["Created At", "created_at"], ["Updated At", "updated_at"], ["Name", "name"], ["Post count", "post_count"]],
       extra_fields: { tag: %i[post_count] },
-      custom_fields: [AdvancedSearchComponent::Field.new("URLs", :array, [["Matches any", %w[url_matches]], ["Matches all", %w[url_matches_all]]])],
+      custom_fields: [
+        AdvancedSearchComponent::Field.new("URLs", :array, [["Matches any", %w[url_matches]], ["Matches all", %w[url_matches_all]]]),
+        AdvancedSearchComponent::Field.new("Has Wiki Page", :boolean, [[nil, %w[has_wiki_page]]]),
+      ],
     ) %>
   </div>
 </div>

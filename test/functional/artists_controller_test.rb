@@ -214,6 +214,20 @@ class ArtistsControllerTest < ActionDispatch::IntegrationTest
       end
     end
 
+    context "search action" do
+      should "render" do
+        get search_artists_path
+        assert_response :success
+      end
+
+      should "have a has wiki page dropdown" do
+        get search_artists_path(search: { has_wiki_page: "false" })
+
+        assert_response :success
+        assert_select "select[name='search[has_wiki_page]'] option[selected][value='false']"
+      end
+    end
+
     context "create action" do
       should "create an artist" do
         assert_difference("Artist.count", 1) do

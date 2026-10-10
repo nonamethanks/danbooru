@@ -443,11 +443,11 @@ module Searchable
       end
 
       if params[:"#{attr}_present"].present? && params[:"#{attr}_present"].truthy?
-        relation = visible(relation, attr).where.not(attr => "")
+        relation = visible(relation, attr).where.not(attr => [nil, ""])
       end
 
       if params[:"#{attr}_present"].present? && params[:"#{attr}_present"].falsy?
-        relation = visible(relation, attr).where(attr => "")
+        relation = visible(relation, attr).where(attr => [nil, ""])
       end
 
       if params[:"#{attr}_eq"].present?

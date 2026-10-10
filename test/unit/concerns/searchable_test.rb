@@ -93,6 +93,19 @@ class SearchableTest < ActiveSupport::TestCase
         assert_search_equals([@p3, @p2, @p1], source_present: "true")
       end
 
+      context "for a nullable attribute" do
+        subject { UploadMediaAsset }
+
+        should "treat null values as empty for the _present operator" do
+          @a1 = create(:upload_media_asset, error: "blah")
+          @a2 = create(:upload_media_asset, error: "")
+          @a3 = create(:upload_media_asset, error: nil)
+
+          assert_search_equals(@a1, error_present: "true", current_user: create(:moderator_user))
+          assert_search_equals([@a3, @a2], error_present: "false", current_user: create(:moderator_user))
+        end
+      end
+
       should "support multiple operators on the same attribute" do
         assert_search_equals([], source: "a1", source_not_eq: "a1")
         assert_search_equals(@p1, source: "a1", source_not_eq: "b2")
