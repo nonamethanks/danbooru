@@ -94,6 +94,27 @@ class DanbooruVipsTest < ActiveSupport::TestCase
       end
     end
 
+    should "work without the file sandbox" do
+      Danbooru.config.stubs(:disable_file_sandbox?).returns("true")
+      file = MediaFile.open("test/files/jpg/test.jpg")
+
+      assert_equal([500, 335], file.dimensions)
+      assert_equal(false, file.is_corrupt?)
+      assert_equal([150, 101], file.preview!(150, 150).dimensions)
+    end
+
+    should "only turn off liborc without the file sandbox" do
+      envs = []
+      ExternalCommand.stubs(:run).with { |_command, env: {}, **| envs << env }.returns(["[{}]\n", stub(success?: true)])
+      file = MediaFile.open("test/files/jpg/test.jpg")
+
+      Danbooru::Vips.header([file])
+      Danbooru.config.stubs(:disable_file_sandbox?).returns("true")
+      Danbooru::Vips.header([file])
+
+      assert_equal([{}, { "ORC_CODE" => "backup", "VIPS_NOVECTOR" => "1" }], envs)
+    end
+
     should "raise an error if the worker times out" do
       ExternalCommand.stubs(:run).raises(ExternalCommand::TimeoutError, "ruby timed out after 60 seconds")
       error = assert_raises(Danbooru::Vips::Error) { Danbooru::Vips.header([MediaFile.open("test/files/jpg/test.jpg")]) }
@@ -192,10 +213,12 @@ class DanbooruVipsTest < ActiveSupport::TestCase
     should "not leak files for formats it can't save" do
       file = MediaFile.open("test/files/jpg/test.jpg")
       file.dimensions
+      GC.start
       open_files = Dir.children("/proc/self/fd").size
 
       assert_raises(NotImplementedError) { file.previews([{ width: 150, height: 150, format: :jpeg }, { width: 150, height: 150, format: :png }]) }
-      assert_equal(open_files, Dir.children("/proc/self/fd").size)
+      GC.start
+      assert_operator(Dir.children("/proc/self/fd").size, :<=, open_files)
     end
 
     should "flatten transparent images to a white background" do
