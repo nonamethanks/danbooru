@@ -1,5 +1,8 @@
 # frozen_string_literal: true
 
+# For ObjectSpace.count_objects_size, count_tdata_objects, count_symbols, and count_imemo_objects.
+require "objspace"
+
 # Calculates metrics for the /metrics and /metrics/instance endpoints.
 #
 # @see app/logical/danbooru/metric.rb
