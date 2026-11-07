@@ -13,6 +13,9 @@ class FFmpeg
   # with audio.
   MAX_PACKET_COUNT = 100_000
 
+  # The most output ffprobe can print for a file's metadata. Each packet and frame takes about 3KB.
+  METADATA_OUTPUT_LIMIT = MAX_PACKET_COUNT * 4.kilobytes
+
   # The maximum width and height of video preview images. This is the size of the largest preview generated for videos.
   PREVIEW_SIZE = 720
 
@@ -51,7 +54,7 @@ class FFmpeg
     # The frames are scaled down to fit within 720x720 (the largest preview size) before `thumbnail`, because it keeps
     # 300 frames in memory to pick the best one. At full size, this would take several GB for a 4K video.
     filters = "scale=iw*sar:ih,scale=#{PREVIEW_SIZE}:#{PREVIEW_SIZE}:force_original_aspect_ratio=decrease:flags=lanczos,thumbnail=300"
-    FFmpeg.shell!("ffmpeg #{input_args} -vf #{filters} -frames:v 1 -y #{vp.path.shellescape}")
+    FFmpeg.shell!("ffmpeg #{input_args} -vf #{filters} -frames:v 1 -y #{vp.path.shellescape}", read: [file.path], write: [vp.path])
 
     MediaFile.open(vp)
   end
@@ -72,7 +75,7 @@ class FFmpeg
   memoize def metadata
     raise Error, "too many frames (max: #{MAX_PACKET_COUNT})" if packet_count > MAX_PACKET_COUNT
 
-    output = FFmpeg.shell!("ffprobe -v quiet -print_format json -show_format -show_streams -show_packets -show_frames #{input_args}")
+    output = FFmpeg.shell!("ffprobe -v quiet -print_format json -show_format -show_streams -show_packets -show_frames #{input_args}", read: [file.path], output_limit: METADATA_OUTPUT_LIMIT)
     output.parse_json || {}
   rescue Error => e
     { error: e.message.strip }.with_indifferent_access
@@ -84,7 +87,7 @@ class FFmpeg
   #
   # @return [Integer] The number of packets, or 0 if reading the file failed.
   memoize def packet_count
-    output = FFmpeg.shell!("ffprobe -v quiet -count_packets -show_entries stream=nb_read_packets -print_format json #{input_args}")
+    output = FFmpeg.shell!("ffprobe -v quiet -count_packets -show_entries stream=nb_read_packets -print_format json #{input_args}", read: [file.path])
     output.parse_json.to_h["streams"].to_a.sum { it["nb_read_packets"].to_i }
   rescue Error
     0
@@ -357,7 +360,7 @@ class FFmpeg
     # https://ffmpeg.org/ffmpeg-filters.html#ebur128-1
     # XXX `-c copy` is faster, but it doesn't decompress the stream so it can't detect corrupt videos.
     output, progress = Danbooru::Tempfile.create do |tempfile|
-      output = FFmpeg.shell!("ffmpeg -hide_banner #{input_args} -progress #{tempfile.path} -af silencedetect=noise=0.0001:duration=0.25s,ebur128=metadata=1:dualmono=true:peak=true -f null /dev/null")
+      output = FFmpeg.shell!("ffmpeg -hide_banner #{input_args} -progress #{tempfile.path.shellescape} -af silencedetect=noise=0.0001:duration=0.25s,ebur128=metadata=1:dualmono=true:peak=true -f null /dev/null", read: [file.path], write: [tempfile.path])
       [output, tempfile.read]
     end
 
@@ -532,13 +535,15 @@ class FFmpeg
       # `-xerror` makes ffmpeg fail if an image can't be read, instead of silently stopping at that image.
       ffmpeg_command = %{ffmpeg -loglevel 99 -xerror #{input_args} -enc_time_base 1/1000 -video_track_timescale 1000 -fps_mode:v vfr -vf "#{filters}" #{codec_args} #{format_args} -pix_fmt #{pix_fmt} -threads #{threads} -an}
 
+      # ffmpeg reads the images and the playlist, and writes its output and two-pass log files to the temp dir.
+      paths = { read: images.map(&:path), write: [tmpdir.path] }
       encoded_output_path = File.join(tmpdir.path, "out.#{format}")
       if two_pass
         passlogfile_path = File.join(tmpdir.path, "ffmpeg2pass")
-        shell!("#{ffmpeg_command} -pass 1 -passlogfile #{passlogfile_path.shellescape} -f null /dev/null")
-        shell!("#{ffmpeg_command} -pass 2 -passlogfile #{passlogfile_path.shellescape} -y #{encoded_output_path.shellescape}", timeout: ENCODE_TIMEOUT)
+        shell!("#{ffmpeg_command} -pass 1 -passlogfile #{passlogfile_path.shellescape} -f null /dev/null", **paths)
+        shell!("#{ffmpeg_command} -pass 2 -passlogfile #{passlogfile_path.shellescape} -y #{encoded_output_path.shellescape}", timeout: ENCODE_TIMEOUT, **paths)
       else
-        shell!("#{ffmpeg_command} -y #{encoded_output_path.shellescape}", timeout: ENCODE_TIMEOUT)
+        shell!("#{ffmpeg_command} -y #{encoded_output_path.shellescape}", timeout: ENCODE_TIMEOUT, **paths)
       end
 
       # XXX ffmpeg incorrectly sets the duration of the last frame to 40ms, so here we use mkvmerge to fix it.
@@ -550,10 +555,10 @@ class FFmpeg
       if format == :mp4
         # mkvmerge can read .mp4 files, but it can only output .mkv files, so we have to convert the fixed .mkv back to .mp4
         fixed_output_path = File.join(tmpdir.path, "out-fixed.mkv")
-        shell!("mkvmerge --timestamps 0:#{timestamps_txt_path.shellescape} #{encoded_output_path.shellescape} -o #{fixed_output_path.shellescape}")
-        shell!("ffmpeg #{input_args(fixed_output_path, demuxers(:mkv))} -c copy #{format_args} -y #{output_path.shellescape}")
+        shell!("mkvmerge --timestamps 0:#{timestamps_txt_path.shellescape} #{encoded_output_path.shellescape} -o #{fixed_output_path.shellescape}", write: [tmpdir.path])
+        shell!("ffmpeg #{input_args(fixed_output_path, demuxers(:mkv))} -c copy #{format_args} -y #{output_path.shellescape}", read: [tmpdir.path], write: [output_path])
       else
-        shell!("mkvmerge --timestamps 0:#{timestamps_txt_path.shellescape} #{encoded_output_path.shellescape} -o #{output_path.shellescape}")
+        shell!("mkvmerge --timestamps 0:#{timestamps_txt_path.shellescape} #{encoded_output_path.shellescape} -o #{output_path.shellescape}", read: [tmpdir.path], write: [output_path])
       end
     end
   end
@@ -605,7 +610,7 @@ class FFmpeg
     end
 
     output.force_encoding("ASCII-8BIT")
-  rescue ExternalCommand::TimeoutError => e
+  rescue ExternalCommand::TimeoutError, ExternalCommand::OutputLimitError => e
     raise Error, e.message
   end
 end

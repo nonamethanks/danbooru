@@ -256,6 +256,14 @@ module Danbooru
       100.megabytes
     end
 
+    # Whether to run ffmpeg, exiftool, and other programs that process uploaded files without Landlock, which stops them
+    # from reading or writing files other than the ones they're working on. Only set this if your kernel doesn't support
+    # Landlock (Linux 5.13+ with Landlock enabled), otherwise these programs will refuse to run. They're still limited by
+    # seccomp, timeouts, and memory limits.
+    def disable_file_sandbox?
+      false
+    end
+
     # Maximum resolution (width * height) of an upload. Default: 441 megapixels (21000x21000 pixels).
     def max_image_resolution
       21_000 * 21_000
@@ -382,7 +390,7 @@ module Danbooru
 
     # The location where images should be stored. By default, images are stored under `public/data`.
     def image_storage_path
-      Rails.root.join("public/data")
+      Rails.public_path.join("data")
     end
 
     # The method to use for storing uploaded files.
@@ -899,7 +907,7 @@ module Danbooru
 
   EnvironmentConfiguration = Struct.new(:config) do
     def method_missing(method, *args)
-      var = ENV["DANBOORU_#{method.to_s.upcase.chomp("?")}"]
+      var = ENV.fetch("DANBOORU_#{method.to_s.upcase.chomp("?")}", nil)
 
       var.presence || config.send(method, *args)
     end

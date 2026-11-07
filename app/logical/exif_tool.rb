@@ -27,7 +27,7 @@ class ExifTool
   # @param options [String] the options to pass to exiftool
   # @return [ExifTool::Metadata] the file's metadata
   def metadata(options: DEFAULT_OPTIONS)
-    output, _status = ExternalCommand.run("exiftool #{options} -json #{file.path.shellescape}")
+    output, _status = ExternalCommand.run("exiftool #{options} -json #{file.path.shellescape}", read: [file.path])
     json = output.parse_json.first
     json = json.except("SourceFile")
     ExifTool::Metadata.new(json.with_indifferent_access)
