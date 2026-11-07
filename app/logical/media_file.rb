@@ -252,6 +252,14 @@ class MediaFile
     raise NotImplementedError
   end
 
+  # Generate several previews of the file. Subclasses generate them all at once when they can.
+  #
+  # @param sizes [Array<Hash>] The max `width` and `height` of each preview, and the other options for `preview!`.
+  # @return [Array<MediaFile>] The previews.
+  def previews(sizes)
+    sizes.map { |size| preview!(size[:width], size[:height], **size.except(:width, :height)) }
+  end
+
   # Return a set of AI-inferred tags for this image. Performs an API call to
   # the Autotagger service. The Autotagger service must be running, otherwise
   # it will return an empty list of tags.

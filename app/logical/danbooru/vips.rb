@@ -36,7 +36,19 @@ class Danbooru::Vips
   # @param files [Array<MediaFile::Image>] The images.
   # @return [Array<Hash>] For each image, its pixel hash, or the error if it's corrupt.
   def self.decode(files)
-    run("decode", files, fail: true)
+    run("decode", files, load: { fail: true })
+  end
+
+  # Resize an image to several sizes with one command.
+  #
+  # @param file [MediaFile::Image] The image.
+  # @param outputs [Array<Hash>] For each output, the `file` to write to, its `width` and `height`, how to `resize` it
+  #   ("thumbnail" or "scale"), the `options` for `Vips::Image#thumbnail_image`, and the `save_options` for its format.
+  # @raise [Error] If the image couldn't be resized.
+  def self.thumbnail(file, outputs)
+    outputs = outputs.map { |output| output.except(:file).merge(path: output[:file].path) }
+    result = run("thumbnail", [file], outputs:, write: outputs.pluck(:path)).first
+    raise Error, "couldn't resize #{file.file.path}: #{result[:error]}" if result[:error]
   end
 
   # @return [Integer] The number of bytes needed to decode the whole image in memory, or 0 if it can be decoded as a
@@ -56,15 +68,18 @@ class Danbooru::Vips
 
   # @return [Hash] The options for loading the file with `Vips::Image.new_from_file`. Images are read as a stream, which
   #   uses less memory. JPEGs are rotated while loading.
-  def self.load_options(file, **options)
-    { access: :sequential, autorotate: (true if file.file_ext == :jpg), **options }.compact
+  def self.load_options(file)
+    { access: :sequential, autorotate: (true if file.file_ext == :jpg) }.compact
   end
 
+  # @param load [Hash] Extra options for loading the files.
+  # @param write [Array<String>] The files the worker can write to.
+  # @param fields [Hash] Extra fields to send with each file.
   # @raise [Error] If the worker failed.
-  def self.run(operation, files, **options)
-    request = { operation:, files: files.map { { path: it.file.path, options: load_options(it, **options), rotate: rotate?(it) } }}.to_json
+  def self.run(operation, files, load: {}, write: [], **fields)
+    request = { operation:, files: files.map { { path: it.file.path, options: load_options(it).merge(load), rotate: rotate?(it), **fields } }}.to_json
     command = ["ruby", "--disable-gems", *LOAD_PATH.map { "-I#{it}" }, WORKER, request].shelljoin
-    output, status = ExternalCommand.run(command, read: [WORKER, *LOAD_PATH, *files.map { it.file.path }])
+    output, status = ExternalCommand.run(command, read: [WORKER, *LOAD_PATH, *files.map { it.file.path }], write:)
     raise Error, "libvips worker failed: #{output.strip}" unless status.success?
 
     JSON.parse(output.lines.last, symbolize_names: true)
