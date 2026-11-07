@@ -1,0 +1,109 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+# Measure how long it takes to process media files the way an upload does: validate them, get their metadata, and
+# generate their thumbnails and samples. Use it to compare performance between versions of the code.
+
+APP_PATH = File.expand_path("../config/application", __dir__)
+require_relative "../config/environment"
+
+require "optparse"
+
+options = { iterations: 3, jobs: 1 }
+
+OptionParser.new do |opts|
+  opts.banner = <<~EOS
+    #{File.basename($PROGRAM_NAME)} - Measure how long it takes to process media files like an upload does
+
+    Usage: #{File.basename($PROGRAM_NAME)} [options] [FILE|DIR ...]
+
+    Validates each file, gets its metadata, and generates its thumbnails and samples. Defaults to test/files. Prints each
+    file as it's processed to stderr, and a summary to stdout.
+  EOS
+
+  opts.on("-n", "--iterations=N", Integer, "Process each file N times (default: 3)") { options[:iterations] = it }
+  opts.on("-j", "--jobs=N", Integer, "Process N files at once (default: 1)") { options[:jobs] = it }
+end.parse!
+
+# The thumbnails and samples generated for uploads (see MediaAsset::Variant).
+SIZES = [
+  { width: 180, height: 180, format: :jpeg, quality: 85 },
+  { width: 360, height: 360, format: :jpeg, quality: 85 },
+  { width: 720, height: 720, format: :webp, quality: 75 },
+  { width: 850, height: 850, format: :jpeg, quality: 85 },
+].freeze
+
+# Process the file like an upload.
+#
+# @return [Array<(String, Exception)>, nil] The file's type and the error if processing it failed, or nil if it isn't an
+#   image, video, or ugoira.
+def process(path)
+  MediaFile.open(path) do |file|
+    next nil unless file.is_a?(MediaFile::Image) || file.is_a?(MediaFile::Video) || file.is_a?(MediaFile::Ugoira)
+
+    [file.class.name.demodulize, upload(file)]
+  end
+end
+
+# Uses `previews` and `sample` if they exist, so this also works with older versions of the code that don't have them.
+#
+# @return [Exception, nil] The error if processing the file failed, for example because it's corrupt.
+def upload(file)
+  file.dimensions
+  file.full_decode_size
+  file.is_supported?
+  file.is_corrupt?
+  file.pixel_hash
+  file.metadata
+
+  previews = file.respond_to?(:previews) ? file.previews(SIZES) : SIZES.map { file.preview!(it[:width], it[:height], **it.slice(:format, :quality)) }
+  previews.each(&:close)
+  (file.respond_to?(:sample) ? file.sample : file.convert).close if file.is_a?(MediaFile::Ugoira)
+  nil
+rescue StandardError, NotImplementedError => e
+  e
+end
+
+paths = (ARGV.presence || ["test/files"]).flat_map { File.directory?(it) ? Dir.glob("#{it}/**/*").select { File.file?(it) } : it }.sort
+jobs = Queue.new
+(paths * options[:iterations]).each { jobs << it }
+jobs.close
+results = Queue.new
+total = paths.size * options[:iterations]
+done = 0
+progress = Mutex.new
+
+started_at = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+cpu_before = Process.times
+
+options[:jobs].times.map do
+  Thread.new do
+    while (path = jobs.pop)
+      file_started_at = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+      type, error = process(path)
+      seconds = Process.clock_gettime(Process::CLOCK_MONOTONIC) - file_started_at
+      results << { type:, error:, seconds: } if type
+
+      status = type.nil? ? "skipped" : format("%-6s %7.3fs", type, seconds)
+      status += " #{error.class}: #{error.message.lines.first&.chomp}" if error
+      progress.synchronize { warn format("[%#{total.to_s.size}d/%d] %s %s", done += 1, total, path, status) }
+    end
+  end
+end.each(&:join)
+
+wall_time = Process.clock_gettime(Process::CLOCK_MONOTONIC) - started_at
+cpu_after = Process.times
+results = results.size.times.map { results.pop }
+
+percentile = ->(times, p) { times.sort[((times.size - 1) * p).round] }
+puts "type      files errors      mean    median       p95     total"
+results.group_by { it[:type] }.sort.each do |type, group|
+  times = group.pluck(:seconds)
+  puts format("%-8s %6d %6d %8.3fs %8.3fs %8.3fs %8.2fs", type, group.size, group.count { it[:error] }, times.sum / times.size, percentile.call(times, 0.5), percentile.call(times, 0.95), times.sum)
+end
+
+puts
+puts format("Wall time:           %.2fs (%d files, %d iterations, %d jobs)", wall_time, paths.size, options[:iterations], options[:jobs])
+puts format("CPU time (Rails):    %.2fs", (cpu_after.utime + cpu_after.stime) - (cpu_before.utime + cpu_before.stime))
+puts format("CPU time (commands): %.2fs", (cpu_after.cutime + cpu_after.cstime) - (cpu_before.cutime + cpu_before.cstime))
+puts format("Peak memory (Rails): %d MB", File.read("/proc/self/status")[/VmHWM:\s+(\d+)/, 1].to_i / 1024)
