@@ -5,11 +5,11 @@
 # doesn't load Rails, RubyGems, or Bundler. Danbooru::Vips decides how to load each file and interprets the results,
 # so this only does what needs libvips.
 #
-# Usage: ruby --disable-gems -I <ruby-vips, ffi, and logger load paths> bin/vips-worker '<request>'
+# Usage: ruby --disable-gems -I <ruby-vips, ffi, and logger load paths> bin/vips-worker <operation> '<file>'...
 #
-# The request is a JSON object with an operation and a list of files:
+# The operation is header, decode, or thumbnail. Each file is a JSON object like this:
 #
-#   {"operation": "header", "files": [{"path": "image.png", "options": {"access": "sequential"}, "rotate": true}]}
+#   {"path": "image.png", "options": {"access": "sequential"}, "rotate": true}
 #
 # The options are passed to `Vips::Image.new_from_file`, and `rotate` says whether to rotate the image according to its
 # orientation flag. For the thumbnail operation, each file also has a list of outputs to write. The response is a JSON
@@ -77,15 +77,15 @@ end
 def thumbnail(path:, options:, outputs:, **)
   outputs.each do |output|
     image = Vips::Image.new_from_file(path, **options)
-    width, height = output.fetch_values("width", "height")
+    width, height = output.fetch_values(:width, :height)
 
-    image = case output.fetch("resize")
-    in "thumbnail" then image.thumbnail_image(width, height:, **output.fetch("options").transform_keys(&:to_sym))
+    image = case output.fetch(:resize)
+    in "thumbnail" then image.thumbnail_image(width, height:, **output.fetch(:options))
     in "scale" then image.resize(width / image.width.to_f, vscale: height / image.height.to_f)
     end
 
     image = image.flatten(background: 255) if image.has_alpha?
-    image.write_to_file(output.fetch("path"), **output.fetch("save_options").transform_keys(&:to_sym))
+    image.write_to_file(output.fetch(:path), **output.fetch(:save_options))
   end
 
   { error: nil }
@@ -120,11 +120,11 @@ def pixel_hash(image)
   digest.hexdigest
 end
 
-request = JSON.parse(ARGV.fetch(0))
-operation = { "header" => method(:header), "decode" => method(:decode), "thumbnail" => method(:thumbnail) }.fetch(request.fetch("operation"))
-results = request.fetch("files").map do |file|
-  file = file.transform_keys(&:to_sym)
-  operation.call(**file, options: file.fetch(:options).transform_keys(&:to_sym))
+operation, *files = ARGV
+operation = { "header" => method(:header), "decode" => method(:decode), "thumbnail" => method(:thumbnail) }.fetch(operation)
+results = files.map do |file|
+  file = JSON.parse(file, symbolize_names: true)
+  operation.call(**file)
 end
 
 puts JSON.generate(results)

@@ -125,23 +125,29 @@ class MediaFile::Image < MediaFile
   # @param sizes [Array<Hash>] The exact `width` and `height` of each resized image, and its `format` and `quality`.
   # @return [Array<MediaFile::Image>] The resized images.
   def resize_all(sizes)
+    return [] if sizes.empty?
+
+    # Check all the formats before creating any files, so they aren't left open if one of them is unsupported.
     outputs = sizes.map do |size|
-      width, height, format, quality = size.fetch(:width), size.fetch(:height), size.fetch(:format, :jpeg), size.fetch(:quality, 85)
-      save_options = SAVE_OPTIONS.fetch(format.to_sym) { raise NotImplementedError, "can't resize to #{format}" }
-      file = Danbooru::Tempfile.new(["danbooru-image-preview-#{md5}-", ".#{format}"])
-      { file:, width:, height:, **resize_options, save_options: { Q: quality, **save_options }}
+      format = size.fetch(:format, :jpeg).to_sym
+      save_options = SAVE_OPTIONS.fetch(format) { raise NotImplementedError, "can't resize to #{format}" }
+      { width: size.fetch(:width), height: size.fetch(:height), format:, **resize_options, save_options: { Q: size.fetch(:quality, 85), **save_options }}
     end
 
+    outputs = outputs.map { |output| output.except(:format).merge(file: Danbooru::Tempfile.new(["danbooru-image-preview-#{md5}-", ".#{output[:format]}"])) }
     Danbooru::Vips.thumbnail(self, outputs)
     outputs.map { MediaFile::Image.new(it[:file]) }
   rescue StandardError
-    outputs&.each { it[:file].close }
+    outputs&.each { it[:file]&.close }
     raise
   end
 
   # @param sizes [Array<Hash>] The max `width` and `height` of each preview, and its `format` and `quality`.
   # @return [Array<MediaFile::Image>] The previews, sized to fit within each width and height.
   def previews(sizes)
+    return [] if sizes.empty?
+    raise Danbooru::Vips::Error, "libvips can't read #{file.path}" if width.nil? || height.nil?
+
     preview_frame.resize_all(sizes.map do |size|
       width, height = MediaFile.scale_dimensions(self.width, self.height, size[:width], size[:height])
       size.merge(width:, height:)
@@ -202,6 +208,8 @@ class MediaFile::Image < MediaFile
   # @see https://www.libvips.org/API/current/Using-vipsthumbnail.md.html
   # @see https://www.libvips.org/API/current/libvips-resample.html#vips-thumbnail
   def resize_options
+    raise Danbooru::Vips::Error, "libvips can't read #{file.path}" if header[:error]
+
     if colorspace.in?(%i[srgb rgb16])
       { resize: "thumbnail", options: { size: :force, import_profile: "srgb", export_profile: "srgb" }}
     elsif colorspace == :cmyk && has_embedded_profile?

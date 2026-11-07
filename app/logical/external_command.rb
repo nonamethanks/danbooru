@@ -104,7 +104,9 @@ class ExternalCommand
     @program = argv.first
     raise ArgumentError, "can't run an empty command" if program.nil?
 
-    @profile = PROFILES.fetch(program, {})
+    # Programs are looked up by name, so a program run by its full path gets the same profile. Landlock only lets it run
+    # the program in the profile.
+    @profile = PROFILES.fetch(File.basename(program), {})
     @read = read
     @write = write
     @timeout = timeout

@@ -43,6 +43,65 @@ class DanbooruVipsTest < ActiveSupport::TestCase
     end
   end
 
+  context "Danbooru::Vips" do
+    should "handle many files with long names" do
+      Dir.mktmpdir do |dir|
+        files = 500.times.map do |i|
+          FileUtils.cp("test/files/jpg/test.jpg", "#{dir}/#{"x" * 240}-#{i}.jpg")
+          MediaFile.open("#{dir}/#{"x" * 240}-#{i}.jpg")
+        end
+
+        assert_equal([[500, 335]] * 500, Danbooru::Vips.header(files).map { it.values_at(:width, :height) })
+      end
+    end
+
+    should "handle file names with special characters" do
+      Dir.mktmpdir do |dir|
+        path = "#{dir}/a b'c\"d$(e)\n ünï.jpg"
+        FileUtils.cp("test/files/jpg/test.jpg", path)
+
+        assert_equal([500, 335], Danbooru::Vips.header([MediaFile.open(path)]).first.values_at(:width, :height))
+      end
+    end
+
+    should "not run a command for an empty list of files" do
+      assert_equal(0, count_commands { Danbooru::Vips.header([]) })
+      assert_equal(0, count_commands { Danbooru::Vips.decode([]) })
+      assert_equal(0, count_commands { MediaFile.open("test/files/jpg/test.jpg").previews([]) })
+    end
+
+    should "run the same Ruby as the Rails process" do
+      commands = []
+      ExternalCommand.stubs(:run).with { |command, **| commands << command }.returns(["[{}]\n", stub(success?: true)])
+      Danbooru::Vips.header([MediaFile.open("test/files/jpg/test.jpg")])
+
+      assert_equal(RbConfig.ruby, commands.first.shellsplit.first)
+    end
+
+    should "raise an error if the worker fails" do
+      ExternalCommand.stubs(:run).returns(["something went wrong\n", stub(success?: false)])
+      error = assert_raises(Danbooru::Vips::Error) { Danbooru::Vips.header([MediaFile.open("test/files/jpg/test.jpg")]) }
+
+      assert_equal("libvips worker failed: something went wrong", error.message)
+    end
+
+    should "raise an error if the worker's response is invalid" do
+      file = MediaFile.open("test/files/jpg/test.jpg")
+
+      ["not json\n", "{}\n", "[]\n", "[1]\n", ""].each do |output|
+        ExternalCommand.stubs(:run).returns([output, stub(success?: true)])
+        assert_raises(Danbooru::Vips::Error, output) { Danbooru::Vips.header([file]) }
+      end
+    end
+
+    should "raise an error if the worker times out" do
+      ExternalCommand.stubs(:run).raises(ExternalCommand::TimeoutError, "ruby timed out after 60 seconds")
+      error = assert_raises(Danbooru::Vips::Error) { Danbooru::Vips.header([MediaFile.open("test/files/jpg/test.jpg")]) }
+
+      assert_equal("libvips worker timed out after 60 seconds", error.message)
+    end
+  end
+
   context "the libvips worker" do
     should "not load file types we don't support" do
       Danbooru::Tempfile.create(["danbooru-test-", ".ppm"]) do |file|
@@ -117,6 +176,26 @@ class DanbooruVipsTest < ActiveSupport::TestCase
 
       preview = MediaFile.open("test/files/jpg/test.jpg").preview!(150, 150, format: :avif)
       assert_equal(:avif, preview.file_ext)
+    end
+
+    should "raise a libvips error for images that libvips can't read" do
+      Tempfile.create do |file|
+        file.write("not an image")
+        file.flush
+        image = MediaFile::Image.new(file)
+
+        assert_raises(Danbooru::Vips::Error) { image.preview!(150, 150) }
+        assert_nil(image.preview(150, 150))
+      end
+    end
+
+    should "not leak files for formats it can't save" do
+      file = MediaFile.open("test/files/jpg/test.jpg")
+      file.dimensions
+      open_files = Dir.children("/proc/self/fd").size
+
+      assert_raises(NotImplementedError) { file.previews([{ width: 150, height: 150, format: :jpeg }, { width: 150, height: 150, format: :png }]) }
+      assert_equal(open_files, Dir.children("/proc/self/fd").size)
     end
 
     should "flatten transparent images to a white background" do
