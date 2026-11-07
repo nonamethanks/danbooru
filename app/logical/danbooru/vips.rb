@@ -72,17 +72,30 @@ class Danbooru::Vips
     { access: :sequential, autorotate: (true if file.file_ext == :jpg) }.compact
   end
 
+  # Run the worker with the same Ruby as Rails, so it can load the same gems. Each file is sent as a separate argument,
+  # because a single argument can't be longer than 128KB.
+  #
   # @param load [Hash] Extra options for loading the files.
   # @param write [Array<String>] The files the worker can write to.
   # @param fields [Hash] Extra fields to send with each file.
-  # @raise [Error] If the worker failed.
+  # @return [Array<Hash>] The result for each file.
+  # @raise [Error] If the worker failed, timed out, or returned an invalid response.
   def self.run(operation, files, load: {}, write: [], **fields)
-    request = { operation:, files: files.map { { path: it.file.path, options: load_options(it).merge(load), rotate: rotate?(it), **fields } }}.to_json
-    command = ["ruby", "--disable-gems", *LOAD_PATH.map { "-I#{it}" }, WORKER, request].shelljoin
+    return [] if files.empty?
+
+    requests = files.map { { path: it.file.path, options: load_options(it).merge(load), rotate: rotate?(it), **fields }.to_json }
+    command = [RbConfig.ruby, "--disable-gems", *LOAD_PATH.map { "-I#{it}" }, WORKER, operation, *requests].shelljoin
     output, status = ExternalCommand.run(command, read: [WORKER, *LOAD_PATH, *files.map { it.file.path }], write:)
     raise Error, "libvips worker failed: #{output.strip}" unless status.success?
 
-    JSON.parse(output.lines.last, symbolize_names: true)
+    results = JSON.parse(output.lines.last.to_s, symbolize_names: true)
+    raise Error, "libvips worker returned an invalid response: #{output.strip}" unless results.is_a?(Array) && results.size == files.size && results.all?(Hash)
+
+    results
+  rescue JSON::ParserError
+    raise Error, "libvips worker returned an invalid response: #{output.strip}"
+  rescue ExternalCommand::TimeoutError, ExternalCommand::OutputLimitError => e
+    raise Error, e.message.sub(/\A\S+/, "libvips worker")
   end
 
   private_class_method :full_decode_size, :rotate?, :load_options, :run
