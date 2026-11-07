@@ -87,9 +87,12 @@ class MediaFile::Ugoira < MediaFile
     return "frames must have the same file type" if frames.map(&:file_ext).uniq.size > 1
 
     # Check the dimensions before decoding the frames, so that a frame can't be larger than the first frame (whose size is
-    # checked by `MediaAsset.validate_media_file!`).
+    # checked by `MediaAsset.validate_media_file!`). The frames are read and decoded with one command each, instead of one
+    # command per frame.
+    MediaFile::Image.read_headers(frames)
     return "frames must have the same dimensions" if frames.map(&:dimensions).uniq.size > 1
 
+    MediaFile::Image.decode_all(frames)
     frames.each do |frame|
       return "file '#{File.basename(frame.path)}' is animated" if frame.is_animated?
       return "file '#{File.basename(frame.path)}' is corrupt" if frame.is_corrupt?
@@ -220,7 +223,7 @@ class MediaFile::Ugoira < MediaFile
   memoize def pixel_hash
     # Decode all the frames with one command, instead of one command per frame.
     data = {
-      frames: Danbooru::Vips.decode(frames).zip(frames, frame_delays).map do |decoded, frame, duration|
+      frames: MediaFile::Image.decode_all(frames).zip(frames, frame_delays).map do |decoded, frame, duration|
         { pixel_hash: decoded[:pixel_hash] || frame.md5, duration: }
       end,
     }

@@ -251,6 +251,19 @@ class DanbooruVipsTest < ActiveSupport::TestCase
     end
   end
 
+  context "MediaFile::Ugoira validation" do
+    should "read and decode all the frames with one command each" do
+      commands = count_commands do
+        file = MediaFile.open("test/files/ugoira/ugoira-95239241-danbooru.zip")
+        file.is_corrupt?
+        file.pixel_hash
+        file.dimensions
+      end
+
+      assert_equal(2, commands)
+    end
+  end
+
   context "MediaFile::Ugoira" do
     should "decode all frames in one command to get the pixel hash" do
       commands = count_commands { MediaFile.open("test/files/ugoira/ugoira-95239241-danbooru.zip").pixel_hash }

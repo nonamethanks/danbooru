@@ -113,6 +113,24 @@ class MediaFile::Image < MediaFile
     header[:interpretation]&.to_sym
   end
 
+  # Read the headers of several images with one command, instead of one command for each image.
+  #
+  # @param images [Array<MediaFile::Image>] The images.
+  def self.read_headers(images)
+    images = images.reject { it.instance_variable_get(:@header) }
+    Danbooru::Vips.header(images).zip(images).each { |header, image| image.instance_variable_set(:@header, header) }
+  end
+
+  # Decode several images with one command, instead of one command for each image (see `#is_corrupt?` and `#pixel_hash`).
+  #
+  # @param images [Array<MediaFile::Image>] The images.
+  # @return [Array<Hash>] For each image, its pixel hash, or its error if it's corrupt (see Danbooru::Vips.decode).
+  def self.decode_all(images)
+    undecoded = images.reject { it.instance_variable_get(:@decoded) }
+    Danbooru::Vips.decode(undecoded).zip(undecoded).each { |decoded, image| image.instance_variable_set(:@decoded, decoded) }
+    images.map { it.instance_variable_get(:@decoded) }
+  end
+
   # Resize the image to exactly the given width and height.
   #
   # @return [MediaFile::Image] The resized image.
@@ -194,13 +212,13 @@ class MediaFile::Image < MediaFile
   private
 
   # @return [Hash] The image's header (see Danbooru::Vips.header).
-  memoize def header
-    Danbooru::Vips.header([self]).first
+  def header
+    @header ||= Danbooru::Vips.header([self]).first
   end
 
   # @return [Hash] The image's pixel hash, or its error if it's corrupt (see Danbooru::Vips.decode).
-  memoize def decoded
-    Danbooru::Vips.decode([self]).first
+  def decoded
+    @decoded ||= Danbooru::Vips.decode([self]).first
   end
 
   # @return [Hash] How to resize the image with bin/vips-worker, depending on its colorspace and color profile.
