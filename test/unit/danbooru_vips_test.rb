@@ -43,6 +43,25 @@ class DanbooruVipsTest < ActiveSupport::TestCase
     end
   end
 
+  context "the libvips worker" do
+    should "not load file types we don't support" do
+      Danbooru::Tempfile.create(["danbooru-test-", ".ppm"]) do |file|
+        file.write("P5\n1 1\n255\n\x00")
+        file.flush
+
+        assert_equal("libvips error", Danbooru::Vips.header([MediaFile::Image.new(file)]).first[:error])
+      end
+    end
+
+    should "load file types we support" do
+      files = %w[jpg/test.jpg png/test.png gif/test.gif webp/test.webp avif/paris_icc_exif_xmp.avif].map { MediaFile.open("test/files/#{it}") }
+
+      Danbooru::Vips.header(files).zip(files).each do |header, file|
+        assert_operator(header[:width].to_i, :>, 0, file.file.path)
+      end
+    end
+  end
+
   context "Danbooru::Vips.decode" do
     should "return the pixel hash and error of each image in one command" do
       files = %w[test/files/dupes/countergirl-baseline.jpg test/files/dupes/countergirl-grey.png test/files/jpg/test-blank.jpg].map { MediaFile.open(it) }

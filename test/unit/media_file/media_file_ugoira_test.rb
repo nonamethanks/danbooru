@@ -1,4 +1,5 @@
 require "test_helper"
+require "vips"
 require "zip"
 
 class MediaFileUgoiraTest < ActiveSupport::TestCase
