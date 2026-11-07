@@ -64,6 +64,15 @@ class ExternalCommand
       # Perl calls symlink("", "") to check if symlinks are supported. Landlock stops it from creating any.
       syscalls: %w[symlink],
     },
+    # Ruby is used to run bin/vips-worker (see Danbooru::Vips). /usr/local/lib has Ruby's standard library, and libvips
+    # and its modules.
+    "ruby" => {
+      execute: %w[/usr/local/bin/ruby],
+      read: %w[/usr/local/lib],
+      # Ruby uses epoll and eventfd for its timer thread, and turns off transparent huge pages (PR_SET_THP_DISABLE).
+      # GLib calls getpeername on stderr when logging a warning, to check whether stderr is connected to journald.
+      syscalls: ["epoll_create1", "epoll_ctl", "epoll_wait", "eventfd2", "getpeername", ["prctl", :allow, [[0, :eq, 41]]]],
+    },
   }.freeze
 
   attr_reader :argv, :program, :profile, :read, :write, :timeout, :memory_limit, :output_limit

@@ -13,12 +13,14 @@ class MediaFile::Image < MediaFile
     @image = nil
   end
 
+  # @return [Array<(Integer, Integer)>] The width and height, from the image's header, or from its EXIF metadata if libvips
+  #   can't read it.
   def dimensions
-    image.size
-  rescue Vips::Error
-    [metadata.width, metadata.height]
-  rescue StandardError
-    [0, 0]
+    if header[:error]
+      [metadata.width, metadata.height]
+    else
+      header.values_at(:width, :height)
+    end
   end
 
   def is_supported?
@@ -34,41 +36,16 @@ class MediaFile::Image < MediaFile
     error.present?
   end
 
+  # XXX we should check if animated gifs can be successfully decoded, but ffmpeg sometimes returns errors for seemingly
+  # good gifs, and no errors for known corrupted gifs.
   def error
-    # Don't rotate the image, because the orientation doesn't matter for checking if it's corrupt.
-    image = open_image(fail: true, rotate: false)
-    stats = image.stats
-    stats.release
-    image.release
-
-    # XXX we should check if animated gifs can be successfully decoded, but ffmpeg sometimes returns errors for
-    # seemingly good gifs, and no errors for known corrupted gifs.
-    # return video.error if is_animated? && video.error.present?
-
-    nil
-  rescue Vips::Error
-    # XXX Vips has a single global error buffer that is shared between threads and that isn't cleared between operations.
-    # We can't reliably use `e.message` here because it may pick up errors from other threads, or from previous
-    # operations in the same thread.
-    "libvips error"
+    decoded[:error]
   end
 
   # Interlaced PNGs and PNGs with an orientation flag can't be decoded as a stream, so the whole image is decoded in
   # memory. This only reads the header, so it's safe to call before validating the file.
   def full_decode_size
-    return 0 if file_ext != :png
-
-    png = open_png(rotate: false)
-    interlaced = png.get_typeof("interlaced") != 0 && png.get("interlaced") != 0
-    rotated = png.get_typeof("orientation") != 0 && png.get("orientation") != 1
-    return 0 unless interlaced || rotated
-
-    bytes_per_band = (png.format == :ushort) ? 2 : 1
-    png.width * png.height * png.bands * bytes_per_band
-  rescue Vips::Error
-    0
-  ensure
-    png&.release
+    header[:full_decode_size].to_i
   end
 
   def metadata
@@ -104,9 +81,7 @@ class MediaFile::Image < MediaFile
   #   isn't animated or is corrupt. Note that libvips and ffmpeg may disagree on the duration.
   def vips_duration
     # XXX Browsers typically raise the frame time to 0.1s if it's less than or equal to 0.01s.
-    image.get("delay").map { |delay| (delay <= 10) ? 100 : delay }.sum / 1000.0
-  rescue Vips::Error
-    nil
+    header[:delay]&.map { |delay| (delay <= 10) ? 100 : delay }&.sum&./(1000.0)
   end
 
   # @return [Integer, nil] The duration of the animation as calculated by ffmpeg, or possibly nil if the file
@@ -117,9 +92,7 @@ class MediaFile::Image < MediaFile
 
   # @return [Integer, nil] The frame count for gif and webp images, or possibly nil if the file doesn't have a frame count or is corrupt.
   def n_pages
-    image.get("n-pages")
-  rescue Vips::Error
-    nil
+    header[:n_pages]
   end
 
   def frame_rate
@@ -128,11 +101,11 @@ class MediaFile::Image < MediaFile
   end
 
   def channels
-    image.bands
+    header[:bands]
   end
 
   def colorspace
-    image.interpretation
+    header[:interpretation]&.to_sym
   end
 
   def resize!(max_width, max_height, format: :jpeg, quality: 85, **options)
@@ -220,48 +193,28 @@ class MediaFile::Image < MediaFile
 
   # Return true if the image has an embedded ICC color profile.
   def has_embedded_profile?
-    image.get_typeof("icc-profile-data") != 0
+    header[:has_embedded_profile] == true
   end
 
-  # @return [String] The MD5 hash of the image's pixels, as a PAM file (https://netpbm.sourceforge.net/doc/pam.html). A
-  #   PAM file is a header followed by the raw pixels, so the hash only depends on the pixels, not the file format or
-  #   metadata. The pixels are hashed as they're decoded, without writing the PAM file to disk.
+  # @return [String] The MD5 hash of the image's pixels (see Danbooru::Vips), or the MD5 of the file if the image is
+  #   animated or corrupt.
   def pixel_hash
     return md5 if is_animated?
 
-    # Normalize the image to the same colorspace and add an alpha layer if missing,
-    # so that the pixel data stays the same even for different profiles.
-    img = open_image(fail: true)
-    img = img.icc_transform("srgb") if img.get_typeof("icc-profile-data") != 0
-    img = img.colourspace("srgb") if img.interpretation != :srgb
-    img = img.add_alpha unless img.has_alpha?
-
-    digest = Digest::MD5.new
-    digest << <<~PAM
-      P7
-      WIDTH #{img.width}
-      HEIGHT #{img.height}
-      DEPTH #{img.bands}
-      MAXVAL 255
-      TUPLTYPE RGB_ALPHA
-      ENDHDR
-    PAM
-
-    target = Vips::TargetCustom.new
-    target.on_write do |chunk|
-      digest << chunk
-      chunk.bytesize
-    end
-
-    img.rawsave_target(target)
-    digest.hexdigest
-  rescue Vips::Error
-    md5
-  ensure
-    img&.release
+    decoded[:pixel_hash] || md5
   end
 
   private
+
+  # @return [Hash] The image's header (see Danbooru::Vips.header).
+  memoize def header
+    Danbooru::Vips.header([self]).first
+  end
+
+  # @return [Hash] The image's pixel hash, or its error if it's corrupt (see Danbooru::Vips.decode).
+  memoize def decoded
+    Danbooru::Vips.decode([self]).first
+  end
 
   # @return [Vips::Image] the Vips image object for the file
   def image

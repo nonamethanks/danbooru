@@ -214,9 +214,10 @@ class MediaFile::Ugoira < MediaFile
 
   # @return [String] The pixel hash of the ugoira.
   memoize def pixel_hash
+    # Decode all the frames with one command, instead of one command per frame.
     data = {
-      frames: frames.map.with_index do |frame, i|
-        { pixel_hash: frame.pixel_hash, duration: frame_delays[i] }
+      frames: Danbooru::Vips.decode(frames).zip(frames, frame_delays).map do |decoded, frame, duration|
+        { pixel_hash: decoded[:pixel_hash] || frame.md5, duration: }
       end,
     }
 

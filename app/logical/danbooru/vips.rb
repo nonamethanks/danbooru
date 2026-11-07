@@ -1,0 +1,74 @@
+# frozen_string_literal: true
+
+# Runs libvips on untrusted images in a sandbox, by running bin/vips-worker with ExternalCommand. Each call runs one
+# command for all the given files, so callers should pass every file they need at once.
+#
+# @see https://www.libvips.org/API/current/
+class Danbooru::Vips
+  class Error < StandardError; end
+
+  # The script that runs libvips.
+  WORKER = Rails.root.join("bin/vips-worker").to_s
+
+  # The worker runs without RubyGems, so we give it the load paths of the gems it needs.
+  LOAD_PATH = %w[ruby-vips ffi logger].map { File.join(Gem.loaded_specs.fetch(it).full_gem_path, "lib") }.freeze
+
+  # Read the header of each image, without decoding it.
+  #
+  # @param files [Array<MediaFile::Image>] The images.
+  # @return [Array<Hash>] For each image, its width, height, bands, interpretation, n_pages, delay,
+  #   has_embedded_profile, and full_decode_size, or the error if libvips couldn't read it.
+  def self.header(files)
+    run("header", files).zip(files).map do |header, file|
+      next header if header[:error]
+
+      # Orientations 5-8 rotate the image by 90 or 270 degrees, which swaps the width and height.
+      width, height = header.values_at(:width, :height)
+      width, height = height, width if rotate?(file) && header[:orientation].to_i.between?(5, 8)
+
+      header.merge(width:, height:, full_decode_size: full_decode_size(header, file))
+    end
+  end
+
+  # Decode each image, to check whether it's corrupt and to calculate its pixel hash. For animated images, only the
+  # first frame is decoded.
+  #
+  # @param files [Array<MediaFile::Image>] The images.
+  # @return [Array<Hash>] For each image, its pixel hash, or the error if it's corrupt.
+  def self.decode(files)
+    run("decode", files, fail: true)
+  end
+
+  # @return [Integer] The number of bytes needed to decode the whole image in memory, or 0 if it can be decoded as a
+  #   stream. Interlaced PNGs and PNGs with an orientation flag can't be decoded as a stream.
+  def self.full_decode_size(header, file)
+    return 0 unless file.file_ext == :png && (header[:interlaced] || header[:orientation].to_i > 1)
+
+    bytes_per_band = (header[:format] == "ushort") ? 2 : 1
+    header[:width] * header[:height] * header[:bands] * bytes_per_band
+  end
+
+  # @return [Boolean] True if the worker should rotate the image according to its orientation flag. PNGs can't be
+  #   rotated while loading, unlike JPEGs. Other formats aren't rotated, because browsers don't rotate them either.
+  def self.rotate?(file)
+    file.file_ext == :png
+  end
+
+  # @return [Hash] The options for loading the file with `Vips::Image.new_from_file`. Images are read as a stream, which
+  #   uses less memory. JPEGs are rotated while loading.
+  def self.load_options(file, **options)
+    { access: :sequential, autorotate: (true if file.file_ext == :jpg), **options }.compact
+  end
+
+  # @raise [Error] If the worker failed.
+  def self.run(operation, files, **options)
+    request = { operation:, files: files.map { { path: it.file.path, options: load_options(it, **options), rotate: rotate?(it) } }}.to_json
+    command = ["ruby", "--disable-gems", *LOAD_PATH.map { "-I#{it}" }, WORKER, request].shelljoin
+    output, status = ExternalCommand.run(command, read: [WORKER, *LOAD_PATH, *files.map { it.file.path }])
+    raise Error, "libvips worker failed: #{output.strip}" unless status.success?
+
+    JSON.parse(output.lines.last, symbolize_names: true)
+  end
+
+  private_class_method :full_decode_size, :rotate?, :load_options, :run
+end

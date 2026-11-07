@@ -3,8 +3,6 @@ require "test_helper"
 class ExternalCommandTest < ActiveSupport::TestCase
   # Profiles for the programs that only the tests run.
   PROFILES = ExternalCommand::PROFILES.merge(
-    # Ruby also turns off transparent huge pages (PR_SET_THP_DISABLE).
-    "ruby" => { execute: %w[/usr/local/bin/ruby], read: %w[/usr/local/lib], syscalls: ["epoll_create1", "epoll_ctl", "epoll_wait", "eventfd2", ["prctl", :allow, [[0, :eq, 41]]]] },
     "sh" => { execute: %w[/usr/bin/dash] },
     "unshare" => { execute: %w[/usr/bin/unshare] },
   ).freeze
