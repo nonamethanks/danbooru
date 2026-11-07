@@ -441,9 +441,6 @@ class ApplicationMetrics
       { name: :ruby_yjit_code_region_size,                        type: :gauge,   help: "Size in bytes of memory region allocated for JIT code." },
       { name: :ruby_yjit_object_shape_count,                      type: :gauge,   help: "Current number of object shapes." },
 
-      { name: :vips_memory_bytes,                                 type: :gauge,   help: "Current amount of memory allocated by libvips." },
-      { name: :vips_allocations,                                  type: :gauge,   help: "Current number of active memory allocations by libvips." },
-      { name: :vips_files,                                        type: :gauge,   help: "Current number of files opened by libvips." },
     ], labels: { worker: puma_worker_id })
 
     if Jemalloc.enabled?
@@ -596,12 +593,6 @@ class ApplicationMetrics
       metrics[:ruby_gc_pool_heap_slots][slot_size: pool_stats[:slot_size], type: :eden].set(pool_stats[:heap_eden_slots])
       metrics[:ruby_gc_pool_heap_slots][slot_size: pool_stats[:slot_size], type: :tomb].set(pool_stats[:heap_tomb_slots])
     end
-
-    metrics.set({
-      vips_memory_bytes: Vips.tracked_mem,
-      vips_allocations:  Vips.tracked_allocs,
-      vips_files:        Vips.tracked_files,
-    })
 
     %i[io fast].each do |name|
       pool = Concurrent.executor(name)
