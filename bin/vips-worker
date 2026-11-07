@@ -1,0 +1,102 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+# Runs libvips on untrusted image files for Danbooru::Vips, which runs it in a sandbox (see ExternalCommand). It
+# doesn't load Rails, RubyGems, or Bundler. Danbooru::Vips decides how to load each file and interprets the results,
+# so this only does what needs libvips.
+#
+# Usage: ruby --disable-gems -I <ruby-vips, ffi, and logger load paths> bin/vips-worker '<request>'
+#
+# The request is a JSON object with an operation and a list of files:
+#
+#   {"operation": "header", "files": [{"path": "image.png", "options": {"access": "sequential"}, "rotate": true}]}
+#
+# The options are passed to `Vips::Image.new_from_file`, and `rotate` says whether to rotate the image according to its
+# orientation flag. The response is a JSON array with the result for each file, printed as the last line.
+
+require "json"
+require "digest"
+require "logger"
+require "vips"
+
+# Send libvips warnings to stderr, so they don't get mixed up with the response.
+GLib.logger = Logger.new($stderr, level: :error)
+Vips.cache_set_max(0)
+Vips.concurrency_set(1)
+
+# Only let libvips use the loaders for the image formats we support.
+Vips.attach_function :vips_operation_block_set, [:string, :int], :void
+Vips.vips_operation_block_set("VipsForeignLoad", 1)
+%w[jpegload pngload gifload webpload heifload].filter_map { GObject.g_type_name(Vips.type_find("VipsForeignLoad", it)) }.each do |loader|
+  Vips.vips_operation_block_set(loader, 0)
+end
+
+def field(image, name)
+  image.get(name) if image.get_typeof(name) != 0
+end
+
+# @return [Hash] The fields from the image's header. This doesn't decode the image.
+def header(path, options, _rotate)
+  image = Vips::Image.new_from_file(path, **options)
+
+  {
+    width: image.width,
+    height: image.height,
+    bands: image.bands,
+    format: image.format,
+    interpretation: image.interpretation,
+    n_pages: field(image, "n-pages"),
+    delay: field(image, "delay"),
+    orientation: field(image, "orientation"),
+    interlaced: field(image, "interlaced").to_i != 0,
+    has_embedded_profile: image.get_typeof("icc-profile-data") != 0,
+  }
+rescue Vips::Error
+  { error: "libvips error" }
+end
+
+# Decode the image to calculate its pixel hash, or to find out if it's corrupt if that fails.
+def decode(path, options, rotate)
+  image = Vips::Image.new_from_file(path, **options)
+
+  # Rotating the image needs random access, which decodes the whole image.
+  image = Vips::Image.new_from_file(path, **options, access: :random).autorot if rotate && field(image, "orientation").to_i > 1
+
+  { pixel_hash: pixel_hash(image), error: nil }
+rescue Vips::Error
+  # The pixel hash can fail without the image being corrupt, for example if it has a broken color profile.
+  { pixel_hash: nil, error: (decodes?(path, options) ? nil : "libvips error") }
+end
+
+def decodes?(path, options)
+  Vips::Image.new_from_file(path, **options).stats
+  true
+rescue Vips::Error
+  false
+end
+
+# @return [String] The MD5 hash of the image's pixels as a PAM file (https://netpbm.sourceforge.net/doc/pam.html), in
+#   sRGB with an alpha channel, so it only depends on the pixels and not on the file format, metadata, or color profile.
+def pixel_hash(image)
+  image = image.icc_transform("srgb") if image.get_typeof("icc-profile-data") != 0
+  image = image.colourspace("srgb") if image.interpretation != :srgb
+  image = image.add_alpha unless image.has_alpha?
+
+  digest = Digest::MD5.new
+  digest << "P7\nWIDTH #{image.width}\nHEIGHT #{image.height}\nDEPTH #{image.bands}\nMAXVAL 255\nTUPLTYPE RGB_ALPHA\nENDHDR\n"
+
+  target = Vips::TargetCustom.new
+  target.on_write do |chunk|
+    digest << chunk
+    chunk.bytesize
+  end
+  image.rawsave_target(target)
+
+  digest.hexdigest
+end
+
+request = JSON.parse(ARGV.fetch(0))
+operation = { "header" => method(:header), "decode" => method(:decode) }.fetch(request.fetch("operation"))
+results = request.fetch("files").map { operation.call(it.fetch("path"), it.fetch("options").transform_keys(&:to_sym), it.fetch("rotate")) }
+
+puts JSON.generate(results)

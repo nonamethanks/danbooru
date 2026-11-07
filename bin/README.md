@@ -22,6 +22,7 @@ These scripts are specific to this project.
 | `setup` | Install Docker and Git, clone the repo, and initialize config files for a fresh install. |
 | `test-sources` | Run all of a specific site's parsing & extractor tests. |
 | `update` | Update Ruby gems and npm packages and run pending migrations. |
+| `vips-worker` | Run libvips on untrusted images. Used by `Danbooru::Vips`, which runs it in a sandbox. |
 
 ## Bundler Scripts
 
