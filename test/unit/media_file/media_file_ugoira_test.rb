@@ -503,6 +503,24 @@ class MediaFileUgoiraTest < ActiveSupport::TestCase
     end
   end
 
+  context "Uploading a ugoira" do
+    should "only convert the ugoira to a video once for its sample and previews" do
+      run = ExternalCommand.method(:run)
+      programs = []
+      ExternalCommand.define_singleton_method(:run) do |command, **options|
+        programs << File.basename(command.shellsplit.first)
+        run.call(command, **options)
+      end
+
+      file = MediaFile.open("test/files/ugoira/ugoira-95239241-danbooru.zip")
+      MediaAsset.upload!(file)
+
+      assert_equal(1, programs.count("mkvmerge"))
+    ensure
+      ExternalCommand.define_singleton_method(:run, run)
+    end
+  end
+
   context "Conversion of a ugoira" do
     should "not fail when converting two ugoiras concurrently" do
       a = Thread.new { MediaFile.open("test/files/ugoira/ugoira-95239241-danbooru.zip").convert }

@@ -134,7 +134,7 @@ class MediaAsset < ApplicationRecord
     def convert_file(media_file)
       case type
       in :sample if media_asset.is_ugoira?
-        media_file.convert
+        media_file.sample
       in :original
         media_file
       end

@@ -51,10 +51,12 @@ class MediaFile::Ugoira < MediaFile
     synchronize do
       super
       @preview_frame&.close
+      @sample&.close
       @frames&.each(&:close)
       @files&.each(&:close)
       @tmpdir&.close
       @preview_frame = nil
+      @sample = nil
       @frames = nil
       @files = nil
       @tmpdir = nil
@@ -366,11 +368,19 @@ class MediaFile::Ugoira < MediaFile
     end
   end
 
+  # @return [MediaFile] The ugoira converted to a WebM, for its sample and its previews. Converting is slow, so it's only
+  #   done once.
+  def sample
+    synchronize do
+      @sample ||= convert
+    end
+  end
+
   private
 
   def preview_frame
     synchronize do
-      @preview_frame ||= FFmpeg.new(convert).smart_video_preview!
+      @preview_frame ||= FFmpeg.new(sample).smart_video_preview!
     end
   end
 
