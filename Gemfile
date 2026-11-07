@@ -45,7 +45,6 @@ gem "rbtrace", "~> 0.5"
 gem "good_job", "~> 4"
 gem "crass", "~> 1"
 gem "public_suffix", "~> 7"
-gem "debug", "~> 1"
 gem "faker", "~> 3"
 gem "resolv", "~> 0.7"
 gem "rover-df", "~> 1"
@@ -82,6 +81,7 @@ group :development do
   gem "benchmark-ips", "~> 2", require: "benchmark/ips"
   gem "listen", "~> 3"
   gem "derailed_benchmarks", "~> 2"
+  gem "debug", "~> 1"
 end
 
 group :test do
