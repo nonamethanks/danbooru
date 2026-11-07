@@ -232,6 +232,20 @@ class ExternalCommandTest < ActiveSupport::TestCase
       ENV.delete("DANBOORU_EXTERNAL_COMMAND_TEST_SECRET")
     end
 
+    should "pass the right arguments and environment even if the garbage collector runs before exec" do
+      # Run the garbage collector and allocate memory after the arguments are converted to C strings, so that freed
+      # strings would get overwritten.
+      Landlock.stubs(:restrict!).with { GC.start(full_mark: true, immediate_sweep: true) || Array.new(10_000) { FFI::MemoryPointer.new(:char, 64).put_bytes(0, "x" * 64) } }
+
+      10.times do
+        output, _status = ExternalCommand.run("env", env: { "FOO" => "bar baz" })
+        assert_includes(output.lines, "FOO=bar baz\n")
+
+        output, _status = ExternalCommand.run("echo hello world")
+        assert_equal("hello world\n", output)
+      end
+    end
+
     should "pass the given environment variables to commands" do
       output, _status = ExternalCommand.run("env", env: { "FOO" => "bar" })
 

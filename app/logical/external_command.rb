@@ -187,8 +187,10 @@ class ExternalCommand
     # Close all other files on exec, so the command can't use files or sockets that the Rails process left open.
     LibC.close_range_cloexec!(3)
 
-    c_argv = LibC.string_array(argv)
-    c_env = LibC.string_array(ENV.slice(*ENVIRONMENT).merge(env).map { |name, value| "#{name}=#{value}" })
+    # These stay referenced until exec, because otherwise the garbage collector could free them first, and the command
+    # would get whatever ends up in their memory as its arguments and environment.
+    c_argv = LibC.strings(argv)
+    c_env = LibC.strings(ENV.slice(*ENVIRONMENT).merge(env).map { |name, value| "#{name}=#{value}" })
 
     # Built here, after forking, so that rules for the process itself apply to the command, which keeps this pid.
     seccomp = Seccomp.allow(BASE_PROFILE[:syscalls] + profile.fetch(:syscalls, []))
@@ -209,7 +211,7 @@ class ExternalCommand
     Process.setrlimit(:AS, memory_limit.to_i)
     Process.setrlimit(:CORE, 0)
 
-    LibC.execvpe(program, c_argv, c_env)
+    LibC.execvpe(program, LibC.pointer_array(c_argv), LibC.pointer_array(c_env))
     raise SystemCallError.new(nil, FFI.errno)
   rescue Exception => e # rubocop:disable Lint/RescueException
     started.write(e.message) rescue nil # rubocop:disable Style/RescueModifier
@@ -288,10 +290,14 @@ class ExternalCommand
       check!(:dup2, dup2(old_fd, new_fd))
     end
 
-    # @return [FFI::MemoryPointer] A NULL-terminated array of C strings.
-    def self.string_array(strings)
-      pointers = strings.map { FFI::MemoryPointer.from_string(it) } + [nil]
-      FFI::MemoryPointer.new(:pointer, pointers.size).put_array_of_pointer(0, pointers)
+    # @return [Array<FFI::MemoryPointer>] The strings, as C strings.
+    def self.strings(strings)
+      strings.map { FFI::MemoryPointer.from_string(it) }
+    end
+
+    # @return [FFI::MemoryPointer] A NULL-terminated array of the pointers.
+    def self.pointer_array(pointers)
+      FFI::MemoryPointer.new(:pointer, pointers.size + 1).put_array_of_pointer(0, pointers + [nil])
     end
 
     def self.check!(name, ret)
