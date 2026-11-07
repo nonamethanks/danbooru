@@ -24,6 +24,8 @@ class MediaFile::Video < MediaFile
     preview_frame.preview!(max_width, max_height, **options)
   end
 
+  delegate :previews, to: :preview_frame
+
   def metadata
     super.merge({
       "FFmpeg:Error" => error,

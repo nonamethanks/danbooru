@@ -12,7 +12,8 @@
 #   {"operation": "header", "files": [{"path": "image.png", "options": {"access": "sequential"}, "rotate": true}]}
 #
 # The options are passed to `Vips::Image.new_from_file`, and `rotate` says whether to rotate the image according to its
-# orientation flag. The response is a JSON array with the result for each file, printed as the last line.
+# orientation flag. For the thumbnail operation, each file also has a list of outputs to write. The response is a JSON
+# array with the result for each file, printed as the last line.
 
 require "json"
 require "digest"
@@ -36,7 +37,7 @@ def field(image, name)
 end
 
 # @return [Hash] The fields from the image's header. This doesn't decode the image.
-def header(path, options, _rotate)
+def header(path:, options:, **)
   image = Vips::Image.new_from_file(path, **options)
 
   {
@@ -56,7 +57,7 @@ rescue Vips::Error
 end
 
 # Decode the image to calculate its pixel hash, or to find out if it's corrupt if that fails.
-def decode(path, options, rotate)
+def decode(path:, options:, rotate:, **)
   image = Vips::Image.new_from_file(path, **options)
 
   # Rotating the image needs random access, which decodes the whole image.
@@ -66,6 +67,30 @@ def decode(path, options, rotate)
 rescue Vips::Error
   # The pixel hash can fail without the image being corrupt, for example if it has a broken color profile.
   { pixel_hash: nil, error: (decodes?(path, options) ? nil : "libvips error") }
+end
+
+# Resize the image to each output's size, and save it to the output's path with its save options. Transparent images
+# are flattened onto a white background.
+#
+# Each output's `resize` is either "thumbnail", to resize it with `Vips::Image#thumbnail_image` and the output's
+# options, or "scale", to scale it to exactly the output's size.
+def thumbnail(path:, options:, outputs:, **)
+  outputs.each do |output|
+    image = Vips::Image.new_from_file(path, **options)
+    width, height = output.fetch_values("width", "height")
+
+    image = case output.fetch("resize")
+    in "thumbnail" then image.thumbnail_image(width, height:, **output.fetch("options").transform_keys(&:to_sym))
+    in "scale" then image.resize(width / image.width.to_f, vscale: height / image.height.to_f)
+    end
+
+    image = image.flatten(background: 255) if image.has_alpha?
+    image.write_to_file(output.fetch("path"), **output.fetch("save_options").transform_keys(&:to_sym))
+  end
+
+  { error: nil }
+rescue Vips::Error
+  { error: "libvips error" }
 end
 
 def decodes?(path, options)
@@ -96,7 +121,10 @@ def pixel_hash(image)
 end
 
 request = JSON.parse(ARGV.fetch(0))
-operation = { "header" => method(:header), "decode" => method(:decode) }.fetch(request.fetch("operation"))
-results = request.fetch("files").map { operation.call(it.fetch("path"), it.fetch("options").transform_keys(&:to_sym), it.fetch("rotate")) }
+operation = { "header" => method(:header), "decode" => method(:decode), "thumbnail" => method(:thumbnail) }.fetch(request.fetch("operation"))
+results = request.fetch("files").map do |file|
+  file = file.transform_keys(&:to_sym)
+  operation.call(**file, options: file.fetch(:options).transform_keys(&:to_sym))
+end
 
 puts JSON.generate(results)

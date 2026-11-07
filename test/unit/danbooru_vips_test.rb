@@ -75,6 +75,61 @@ class DanbooruVipsTest < ActiveSupport::TestCase
     end
   end
 
+  context "MediaFile::Image#previews" do
+    should "generate every preview in one command" do
+      file = MediaFile.open("test/files/jpg/test.jpg")
+      file.dimensions
+      previews = nil
+      commands = count_commands do
+        previews = file.previews([
+          { width: 180, height: 180, format: :jpeg, quality: 85 },
+          { width: 720, height: 720, format: :webp, quality: 75 },
+          { width: 850, height: 850, format: :jpeg, quality: 85 },
+        ])
+      end
+
+      assert_equal(1, commands)
+      assert_equal([[180, 121], [500, 335], [500, 335]], previews.map(&:dimensions))
+      assert_equal(%i[jpg webp jpg], previews.map(&:file_ext))
+    end
+
+    should "generate AVIF previews" do
+      skip "Not supported because libheif in the Docker image doesn't have an AV1 encoder"
+
+      preview = MediaFile.open("test/files/jpg/test.jpg").preview!(150, 150, format: :avif)
+      assert_equal(:avif, preview.file_ext)
+    end
+
+    should "flatten transparent images to a white background" do
+      preview = MediaFile.open("test/files/png/alpha.png").preview!(150, 150, format: :jpeg)
+
+      assert_equal(3, preview.channels)
+    end
+
+    should "raise an error if the image can't be resized" do
+      Tempfile.create do |file|
+        file.write("not an image")
+        file.flush
+        output = { file: Danbooru::Tempfile.new(["preview", ".jpeg"]), width: 10, height: 10, resize: "thumbnail", options: {}, save_options: {}}
+
+        assert_raises(Danbooru::Vips::Error) { Danbooru::Vips.thumbnail(MediaFile::Image.new(file), [output]) }
+      end
+    end
+  end
+
+  context "MediaAsset.upload!" do
+    should "run one command to generate all the variants of an image" do
+      file = MediaFile.open("test/files/jpg/test.jpg")
+      file.dimensions
+      file.is_corrupt?
+      file.metadata
+      commands = count_commands { MediaAsset.upload!(file) }
+
+      assert_equal(1, commands)
+      assert_equal(%i[180x180 360x360 720x720 original], MediaAsset.last.variants.map(&:type))
+    end
+  end
+
   context "MediaFile::Ugoira" do
     should "decode all frames in one command to get the pixel hash" do
       commands = count_commands { MediaFile.open("test/files/ugoira/ugoira-95239241-danbooru.zip").pixel_hash }

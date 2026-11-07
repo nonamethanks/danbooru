@@ -1,16 +1,21 @@
 # frozen_string_literal: true
 
-# A MediaFile for a JPEG, PNG, or GIF file. Uses libvips for resizing images.
-#
-# @see https://github.com/libvips/ruby-vips
-# @see https://libvips.github.io/libvips/API/current
+# A MediaFile for a JPEG, PNG, GIF, WebP, or AVIF file. Uses libvips in a sandbox (see Danbooru::Vips) for reading and
+# resizing images.
 class MediaFile::Image < MediaFile
+  # The options for saving previews in each format.
+  #
+  # @see https://www.libvips.org/API/current/VipsForeignSave.html
+  SAVE_OPTIONS = {
+    jpeg: { strip: true, interlace: true, optimize_coding: true, optimize_scans: true, trellis_quant: true, overshoot_deringing: true, quant_table: 3 },
+    webp: { preset: :drawing, smart_subsample: false, effort: 4, strip: true },
+    avif: { compression: :av1, effort: 4, strip: true },
+  }.freeze
+
   def close
     super
     @preview_frame&.close unless @preview_frame == self
     @preview_frame = nil
-    @image&.release
-    @image = nil
   end
 
   # @return [Array<(Integer, Integer)>] The width and height, from the image's header, or from its EXIF metadata if libvips
@@ -108,67 +113,43 @@ class MediaFile::Image < MediaFile
     header[:interpretation]&.to_sym
   end
 
-  def resize!(max_width, max_height, format: :jpeg, quality: 85, **options)
-    # @see https://www.libvips.org/API/current/Using-vipsthumbnail.md.html
-    # @see https://www.libvips.org/API/current/libvips-resample.html#vips-thumbnail
-    if colorspace.in?(%i[srgb rgb16])
-      resized_image = thumbnail_image(max_width, height: max_height, size: :force, import_profile: "srgb", export_profile: "srgb", **options)
-    elsif colorspace == :cmyk && has_embedded_profile?
-      resized_image = thumbnail_image(max_width, height: max_height, size: :force, import_profile: "cmyk", export_profile: "srgb", **options)
-    elsif colorspace == :cmyk && !has_embedded_profile?
-      # Leave CMYK without a profile as CMYK to avoid distorting the colors by converting it to sRGB
-      hscale = max_width / width.to_f
-      vscale = max_height / height.to_f
-      resized_image = image.resize(hscale, vscale: vscale, **options)
-    elsif colorspace.in?(%i[b-w grey16]) && has_embedded_profile?
-      # Convert greyscale to sRGB so that the color profile is properly applied before we strip it.
-      resized_image = thumbnail_image(max_width, height: max_height, size: :force, export_profile: "srgb", **options)
-    elsif colorspace.in?(%i[b-w grey16])
-      # Otherwise, leave greyscale without a profile as greyscale because
-      # converting it to sRGB would change it from 1 channel to 3 channels.
-      resized_image = thumbnail_image(max_width, height: max_height, size: :force, **options)
-    else
-      raise NotImplementedError
-    end
-
-    if resized_image.has_alpha?
-      flattened_image = resized_image.flatten(background: 255)
-      resized_image.release
-      resized_image = flattened_image
-    end
-
-    output_file = Danbooru::Tempfile.new(["danbooru-image-preview-#{md5}-", ".#{format}"])
-    case format.to_sym
-    when :jpeg
-      # https://www.libvips.org/API/current/VipsForeignSave.html#vips-jpegsave
-      resized_image.jpegsave(output_file.path, Q: quality, strip: true, interlace: true, optimize_coding: true, optimize_scans: true, trellis_quant: true, overshoot_deringing: true, quant_table: 3)
-    when :webp
-      # https://www.libvips.org/API/current/VipsForeignSave.html#vips-webpsave
-      resized_image.webpsave(output_file.path, Q: quality, preset: :drawing, smart_subsample: false, effort: 4, strip: true)
-    when :avif
-      # https://www.libvips.org/API/current/VipsForeignSave.html#vips-heifsave
-      resized_image.heifsave(output_file.path, Q: quality, compression: :av1, effort: 4, strip: true)
-    else
-      raise NotImplementedError
-    end
-
-    resized_image.release
-    MediaFile::Image.new(output_file)
+  # Resize the image to exactly the given width and height.
+  #
+  # @return [MediaFile::Image] The resized image.
+  def resize!(width, height, format: :jpeg, quality: 85)
+    resize_all([{ width:, height:, format:, quality: }]).first
   end
 
-  # Resize the image to fit within the given width and height.
-  # PNGs are resized first and then rotated after, which takes a lot less memory.
-  def thumbnail_image(width, height:, **options)
-    if file_ext == :png
-      open_png(rotate: false).thumbnail_image(width, height:, **options)
-    else
-      image.thumbnail_image(width, height:, **options)
+  # Resize the image to several sizes with one command.
+  #
+  # @param sizes [Array<Hash>] The exact `width` and `height` of each resized image, and its `format` and `quality`.
+  # @return [Array<MediaFile::Image>] The resized images.
+  def resize_all(sizes)
+    outputs = sizes.map do |size|
+      width, height, format, quality = size.fetch(:width), size.fetch(:height), size.fetch(:format, :jpeg), size.fetch(:quality, 85)
+      save_options = SAVE_OPTIONS.fetch(format.to_sym) { raise NotImplementedError, "can't resize to #{format}" }
+      file = Danbooru::Tempfile.new(["danbooru-image-preview-#{md5}-", ".#{format}"])
+      { file:, width:, height:, **resize_options, save_options: { Q: quality, **save_options }}
     end
+
+    Danbooru::Vips.thumbnail(self, outputs)
+    outputs.map { MediaFile::Image.new(it[:file]) }
+  rescue StandardError
+    outputs&.each { it[:file].close }
+    raise
+  end
+
+  # @param sizes [Array<Hash>] The max `width` and `height` of each preview, and its `format` and `quality`.
+  # @return [Array<MediaFile::Image>] The previews, sized to fit within each width and height.
+  def previews(sizes)
+    preview_frame.resize_all(sizes.map do |size|
+      width, height = MediaFile.scale_dimensions(self.width, self.height, size[:width], size[:height])
+      size.merge(width:, height:)
+    end)
   end
 
   def preview!(max_width, max_height, **options)
-    w, h = MediaFile.scale_dimensions(width, height, max_width, max_height)
-    MediaFile::Image.new(preview_frame.file).resize!(w, h, **options)
+    previews([{ width: max_width, height: max_height, **options }]).first
   end
 
   def is_animated?
@@ -216,44 +197,28 @@ class MediaFile::Image < MediaFile
     Danbooru::Vips.decode([self]).first
   end
 
-  # @return [Vips::Image] the Vips image object for the file
-  def image
-    @image ||= open_image(fail: false)
-  end
-
-  # @param rotate [Boolean] If true, rotate PNGs that have an EXIF orientation flag. This loads the full image into memory.
-  def open_image(rotate: true, **options)
-    case file_ext
-    when :jpg
-      Vips::Image.new_from_file(file.path, access: :sequential, autorotate: true, **options)
-    when :png
-      # pngload cannot rotate the image during load, so we do it after.
-      open_png(rotate:, **options)
+  # @return [Hash] How to resize the image with bin/vips-worker, depending on its colorspace and color profile.
+  #
+  # @see https://www.libvips.org/API/current/Using-vipsthumbnail.md.html
+  # @see https://www.libvips.org/API/current/libvips-resample.html#vips-thumbnail
+  def resize_options
+    if colorspace.in?(%i[srgb rgb16])
+      { resize: "thumbnail", options: { size: :force, import_profile: "srgb", export_profile: "srgb" }}
+    elsif colorspace == :cmyk && has_embedded_profile?
+      { resize: "thumbnail", options: { size: :force, import_profile: "cmyk", export_profile: "srgb" }}
+    elsif colorspace == :cmyk
+      # Leave CMYK without a profile as CMYK to avoid distorting the colors by converting it to sRGB.
+      { resize: "scale", options: {}}
+    elsif colorspace.in?(%i[b-w grey16]) && has_embedded_profile?
+      # Convert greyscale to sRGB so that the color profile is properly applied before we strip it.
+      { resize: "thumbnail", options: { size: :force, export_profile: "srgb" }}
+    elsif colorspace.in?(%i[b-w grey16])
+      # Otherwise, leave greyscale without a profile as greyscale because converting it to sRGB would change it from 1
+      # channel to 3 channels.
+      { resize: "thumbnail", options: { size: :force }}
     else
-      # Browser support for WebP/AVIF is not widespread, and vips cannot read some of these flags, so we don't support it either.
-      Vips::Image.new_from_file(file.path, access: :sequential, **options)
+      raise NotImplementedError, "can't resize images with the #{colorspace.inspect} colorspace"
     end
-  end
-
-  # Open with sequential access when the image does not need rotation, otherwise use the default access mode.
-  #
-  # Sequential access uses much less memory than the default access mode but is not supported by `autorot`,
-  # so we only reopen the picture in default mode if we actually need it.
-  # This results in a higher memory usage for rotated pngs, but they are the rare case, so it's an overall gain.
-  #
-  # Note that only rotation specified before the IDAT chunk (actual image data) is considered valid.
-  # Other types of rotation metadata are ignored by most browsers, so we ignore them too.
-  def open_png(rotate: true, **options)
-    image = Vips::Image.new_from_file(file.path, access: :sequential, **options)
-    orientation = image.get("orientation") if image.get_typeof("orientation") != 0
-
-    if rotate && orientation.present? && orientation != 1
-      image.release
-      image = Vips::Image.new_from_file(file.path, **options)
-      image = image.autorot
-    end
-
-    image
   end
 
   def video

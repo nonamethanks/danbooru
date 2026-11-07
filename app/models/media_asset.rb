@@ -89,12 +89,9 @@ class MediaAsset < ApplicationRecord
       @type = type.to_sym
     end
 
-    def store_file!(original_file)
-      file = convert_file(original_file)
+    def store_file!(file)
       storage_service.store(file, file_path)
       backup_storage_service.store(file, file_path)
-    ensure
-      file&.close unless file == original_file
     end
 
     def trash_file!
@@ -119,18 +116,25 @@ class MediaAsset < ApplicationRecord
       MediaFile.open(file, frame_delays: frame_delays, &block)
     end
 
+    # @return [Hash, nil] The size and format of this variant's preview, or nil if it isn't a preview of the original file.
+    def preview_options
+      case type
+      in :"180x180" | :"360x360"
+        { width:, height:, format: :jpeg, quality: 85 }
+      in :"720x720"
+        { width:, height:, format: :webp, quality: 75 }
+      in :sample | :full if media_asset.is_static_image?
+        { width:, height:, format: :jpeg, quality: 85 }
+      else
+        nil
+      end
+    end
+
+    # @return [MediaFile] The file for this variant, if it isn't a preview.
     def convert_file(media_file)
       case type
-      in :"180x180"
-        media_file.preview!(width, height, format: :jpeg, quality: 85)
-      in :"360x360"
-        media_file.preview!(width, height, format: :jpeg, quality: 85)
-      in :"720x720"
-        media_file.preview!(width, height, format: :webp, quality: 75)
       in :sample if media_asset.is_ugoira?
         media_file.convert
-      in :sample | :full if media_asset.is_static_image?
-        media_file.preview!(width, height, format: :jpeg, quality: 85)
       in :original
         media_file
       end
@@ -306,10 +310,12 @@ class MediaAsset < ApplicationRecord
         media_asset = create!(file: media_file, status: :processing)
         yield media_asset if block_given?
 
-        # XXX shouldn't generate thumbnail twice (very slow for ugoira)
-        task1 = Danbooru.async { media_asset.update!(ai_tags: media_file.preview!(360, 360).ai_tags) if media_asset.has_variant?(:"360x360") }
+        files = media_asset.convert_files(media_file)
+        thumbnail = files.find { |variant, _| variant.type == :"360x360" }&.second
+
+        task1 = Danbooru.async { media_asset.update!(ai_tags: thumbnail.ai_tags) if thumbnail }
         task2 = Danbooru.async { media_asset.update!(media_metadata: MediaMetadata.new(file: media_file)) }
-        media_asset.distribute_files!(media_file)
+        media_asset.store_files!(files)
         task1.wait!
         task2.wait!
 
@@ -346,6 +352,8 @@ class MediaAsset < ApplicationRecord
         # failed so the user can try the upload again later.
         media_asset&.update!(status: :failed)
         raise
+      ensure
+        files&.each_value { it.close unless it == media_file }
       end
 
       def validate_media_file!(media_file, uploader)
@@ -484,8 +492,28 @@ class MediaAsset < ApplicationRecord
     end
 
     def distribute_files!(media_file, variants: self.variants)
-      variants.parallel_each do |variant|
-        variant.store_file!(media_file)
+      files = convert_files(media_file, variants:)
+      store_files!(files)
+    ensure
+      files&.each_value { it.close unless it == media_file }
+    end
+
+    # Generate the file for each variant. All the thumbnails and samples are generated at once, with one command.
+    #
+    # @return [Hash<MediaAsset::Variant, MediaFile>] The file for each variant.
+    def convert_files(media_file, variants: self.variants)
+      previews, others = variants.partition(&:preview_options)
+      preview_files = media_file.previews(previews.map(&:preview_options))
+
+      previews.zip(preview_files).to_h.merge(others.index_with { it.convert_file(media_file) })
+    end
+
+    # Store each variant's file.
+    #
+    # @param files [Hash<MediaAsset::Variant, MediaFile>] The file for each variant.
+    def store_files!(files)
+      files.to_a.parallel_each do |variant, file|
+        variant.store_file!(file)
       end
     end
 

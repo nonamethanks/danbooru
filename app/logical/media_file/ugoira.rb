@@ -194,6 +194,8 @@ class MediaFile::Ugoira < MediaFile
     preview_frame.preview!(width, height, **options)
   end
 
+  delegate :previews, to: :preview_frame
+
   def duration
     (frame_delays.sum / 1000.0)
   end
