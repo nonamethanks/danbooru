@@ -75,7 +75,7 @@ class ExternalCommand
     },
   }.freeze
 
-  attr_reader :argv, :program, :profile, :read, :write, :timeout, :memory_limit, :output_limit
+  attr_reader :argv, :program, :profile, :read, :write, :timeout, :memory_limit, :output_limit, :env
 
   # Run a command and return its output. The command is killed if it runs longer than the timeout or prints more than
   # the output limit.
@@ -89,6 +89,7 @@ class ExternalCommand
   # @param timeout [Integer] The maximum number of seconds the command can run.
   # @param memory_limit [Integer] The maximum number of bytes of memory the command can use.
   # @param output_limit [Integer] The maximum number of bytes the command can print to stdout and stderr.
+  # @param env [Hash<String, String>] Extra environment variables to pass to the command.
   # @return [Array<(String, Process::Status)>] The combined stdout and stderr of the command, and its exit status.
   # @raise [TimeoutError] If the command ran longer than the timeout, or setting up the sandbox took longer than STARTUP_TIMEOUT.
   # @raise [OutputLimitError] If the command printed more than the output limit.
@@ -99,7 +100,7 @@ class ExternalCommand
   end
 
   # @see ExternalCommand.run
-  def initialize(command, read: [], write: [], timeout: TIMEOUT, memory_limit: MEMORY_LIMIT, output_limit: OUTPUT_LIMIT)
+  def initialize(command, read: [], write: [], timeout: TIMEOUT, memory_limit: MEMORY_LIMIT, output_limit: OUTPUT_LIMIT, env: {}) # rubocop:disable Metrics/ParameterLists
     @argv = command.shellsplit
     @program = argv.first
     raise ArgumentError, "can't run an empty command" if program.nil?
@@ -112,6 +113,7 @@ class ExternalCommand
     @timeout = timeout
     @memory_limit = memory_limit
     @output_limit = output_limit
+    @env = env
   end
 
   # @see ExternalCommand.run
@@ -186,7 +188,7 @@ class ExternalCommand
     LibC.close_range_cloexec!(3)
 
     c_argv = LibC.string_array(argv)
-    c_env = LibC.string_array(ENV.slice(*ENVIRONMENT).map { |name, value| "#{name}=#{value}" })
+    c_env = LibC.string_array(ENV.slice(*ENVIRONMENT).merge(env).map { |name, value| "#{name}=#{value}" })
 
     # Built here, after forking, so that rules for the process itself apply to the command, which keeps this pid.
     seccomp = Seccomp.allow(BASE_PROFILE[:syscalls] + profile.fetch(:syscalls, []))

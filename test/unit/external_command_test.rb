@@ -119,6 +119,7 @@ class ExternalCommandTest < ActiveSupport::TestCase
 
     should "not leak files" do
       ExternalCommand.run("echo hello")
+      GC.start
       open_files = Dir.children("/proc/self/fd").size
 
       10.times { ExternalCommand.run("echo hello") }
@@ -133,7 +134,9 @@ class ExternalCommandTest < ActiveSupport::TestCase
         nil
       end
 
-      assert_equal(open_files, Dir.children("/proc/self/fd").size)
+      # Other files can be closed while this runs, for example when temp files from other tests are garbage collected.
+      GC.start
+      assert_operator(Dir.children("/proc/self/fd").size, :<=, open_files)
     end
 
     should "kill the command and not leak files if it can't wait for the command" do
@@ -227,6 +230,12 @@ class ExternalCommandTest < ActiveSupport::TestCase
       assert_equal(ENV.slice(*ExternalCommand::ENVIRONMENT).keys.sort, output.lines.map { it.split("=").first }.sort)
     ensure
       ENV.delete("DANBOORU_EXTERNAL_COMMAND_TEST_SECRET")
+    end
+
+    should "pass the given environment variables to commands" do
+      output, _status = ExternalCommand.run("env", env: { "FOO" => "bar" })
+
+      assert_includes(output.lines, "FOO=bar\n")
     end
 
     should "not let commands read the environment of the Rails process" do

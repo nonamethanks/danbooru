@@ -10,6 +10,11 @@ class Danbooru::Vips
   # The script that runs libvips.
   WORKER = Rails.root.join("bin/vips-worker").to_s
 
+  # libvips uses liborc, which writes the code it generates to a file in /tmp and then deletes it. Without the file
+  # sandbox, the worker is allowed to create the file but would be killed for deleting it, so liborc is turned off. With
+  # the sandbox, it can't create the file, so it uses memory instead.
+  NO_ORC_ENV = { "ORC_CODE" => "backup", "VIPS_NOVECTOR" => "1" }.freeze
+
   # The worker runs without RubyGems, so we give it the load paths of the gems it needs.
   LOAD_PATH = %w[ruby-vips ffi logger].map { File.join(Gem.loaded_specs.fetch(it).full_gem_path, "lib") }.freeze
 
@@ -85,7 +90,8 @@ class Danbooru::Vips
 
     requests = files.map { { path: it.file.path, options: load_options(it).merge(load), rotate: rotate?(it), **fields }.to_json }
     command = [RbConfig.ruby, "--disable-gems", *LOAD_PATH.map { "-I#{it}" }, WORKER, operation, *requests].shelljoin
-    output, status = ExternalCommand.run(command, read: [WORKER, *LOAD_PATH, *files.map { it.file.path }], write:)
+    env = Danbooru.config.disable_file_sandbox?.to_s.truthy? ? NO_ORC_ENV : {}
+    output, status = ExternalCommand.run(command, read: [WORKER, *LOAD_PATH, *files.map { it.file.path }], write:, env:)
     raise Error, "libvips worker failed: #{output.strip}" unless status.success?
 
     results = JSON.parse(output.lines.last.to_s, symbolize_names: true)
