@@ -557,7 +557,7 @@ class FFmpeg
       encoded_output_path = File.join(tmpdir.path, "out.#{format}")
       if two_pass
         passlogfile_path = File.join(tmpdir.path, "ffmpeg2pass")
-        shell!("#{ffmpeg_command} -pass 1 -passlogfile #{passlogfile_path.shellescape} -f null /dev/null", **paths)
+        shell!("#{ffmpeg_command} -pass 1 -passlogfile #{passlogfile_path.shellescape} -f null /dev/null", timeout: ENCODE_TIMEOUT, **paths)
         shell!("#{ffmpeg_command} -pass 2 -passlogfile #{passlogfile_path.shellescape} -y #{encoded_output_path.shellescape}", timeout: ENCODE_TIMEOUT, **paths)
       else
         shell!("#{ffmpeg_command} -y #{encoded_output_path.shellescape}", timeout: ENCODE_TIMEOUT, **paths)

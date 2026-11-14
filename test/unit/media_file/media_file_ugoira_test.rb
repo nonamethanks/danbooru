@@ -584,6 +584,15 @@ class MediaFileUgoiraTest < ActiveSupport::TestCase
         end
       end
     end
+
+    should "not limit the first pass of two-pass encoding to the default command timeout" do
+      ExternalCommand.expects(:run).with(regexp_matches(/ -pass 1 /), has_entry(:timeout, FFmpeg::ENCODE_TIMEOUT)).raises(ExternalCommand::TimeoutError, "pass 1 timed out")
+      ugoira = MediaFile::Ugoira.new(["test/files/jpg/test.jpg", "test/files/jpg/test.jpg"], frame_delays: [100, 100])
+
+      error = assert_raises(FFmpeg::Error) { ugoira.convert(format: :webm) }
+      assert_equal("pass 1 timed out", error.message)
+      ugoira.close
+    end
   end
 
   context "Conversion of a ugoira with a frame disguised as a playlist" do
