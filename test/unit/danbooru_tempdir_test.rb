@@ -27,7 +27,7 @@ class DanbooruTempdirTest < ActiveSupport::TestCase
         sleep 0.1 # Let the finalizers run.
         exit!(0)
       end
-      Process.wait(pid)
+      wait_for_fork(pid)
 
       assert_equal(true, File.exist?(path))
     ensure

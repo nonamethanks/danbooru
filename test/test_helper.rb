@@ -68,6 +68,21 @@ Minitest::Reporters.use!([
   Minitest::Reporters::JUnitReporter.new("tmp/junit-test-results"),
 ])
 
+# Print the test name and every thread's backtrace when a test takes too long, so a hung test run shows which test hung.
+Minitest::Test.prepend(Module.new do
+  def run
+    watchdog = Thread.new do
+      sleep 2.minutes
+      backtraces = Thread.list.map { |thread| "#{thread.inspect}\n  #{thread.backtrace&.join("\n  ")}" }
+      warn "\n#{self.class}##{name} has been running for over 2 minutes (pid #{Process.pid}):\n\n#{backtraces.join("\n\n")}\n"
+    end
+
+    super
+  ensure
+    watchdog&.kill
+  end
+end)
+
 Shoulda::Matchers.configure do |config|
   config.integrate do |with|
     with.test_framework :minitest
@@ -136,6 +151,18 @@ class ActiveSupport::TestCase
   teardown do
     FileUtils.rm_rf(@temp_dir)
     Cache.clear
+  end
+
+  # Wait for a forked process to exit. A fork of a multithreaded process can hang, so kill it and fail the test instead
+  # of hanging the whole test run.
+  #
+  # @return [Process::Status] The exit status of the process.
+  def wait_for_fork(pid, timeout: 10.seconds)
+    Timeout.timeout(timeout) { Process.wait2(pid).last }
+  rescue Timeout::Error
+    Process.kill(:KILL, pid)
+    Process.wait(pid)
+    flunk("forked process #{pid} didn't exit after #{timeout.inspect}")
   end
 
   def as(user, &block)

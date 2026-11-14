@@ -75,8 +75,7 @@ class StorageManagerTest < ActiveSupport::TestCase
       tempfile("before") { |f| @storage_manager.store(f, "fork.txt") }
 
       pid = fork { exit!(0) }
-      _, status = Process.wait2(pid)
-      assert_equal(true, status.success?)
+      assert_equal(true, wait_for_fork(pid).success?)
 
       tempfile("after") { |f| @storage_manager.store(f, "fork.txt") }
       file = @storage_manager.open("fork.txt")
