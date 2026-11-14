@@ -38,8 +38,10 @@ class BulkUpdateRequest::Command::CreateAlias < BulkUpdateRequest::Command
     # `approval_level` because it needs extra queries.
     return unless context == :approval && !approver.is_admin? && old_tag.present? && new_tag.present? && !new_tag.empty? && !new_tag.is_small_tag?
 
+    # A general old tag becomes an artist tag when it's aliased to an artist tag (see TagMover#move_tag_category!).
+    old_is_artist = old_tag.artist? || (old_tag.general? && new_tag.artist?)
     cosplay_tag = Tag.find_by_name("#{old_tag.name}_(cosplay)")
-    style_tag = Tag.find_by_name("#{old_tag.name}_(style)") if old_tag.artist?
+    style_tag = Tag.find_by_name("#{old_tag.name}_(style)") if old_is_artist
 
     if old_tag.antecedent_implications.exists?
       errors.add(:base, "Can't approve #{to_dtext} ([[#{old_tag.name}]] has implications; requires Admin)")
@@ -47,7 +49,7 @@ class BulkUpdateRequest::Command::CreateAlias < BulkUpdateRequest::Command
       errors.add(:base, "Can't approve #{to_dtext} ([[#{cosplay_tag.name}]] is too large; requires Admin)")
     elsif style_tag.present? && !style_tag.is_small_tag?
       errors.add(:base, "Can't approve #{to_dtext} ([[#{style_tag.name}]] is too large; requires Admin)")
-    elsif old_tag.artist? && old_tag.artist&.is_banned?
+    elsif old_is_artist && old_tag.artist&.is_banned?
       errors.add(:base, "Can't approve #{to_dtext} ([[#{old_tag.name}]] is a banned artist; requires Admin)")
     end
   end

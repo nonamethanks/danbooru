@@ -42,6 +42,45 @@ class BulkUpdateRequestTest < ActiveSupport::TestCase
         end
       end
 
+      context "while another BUR with the same tags is still processing" do
+        setup do
+          @mod = create(:mod_user)
+          create(:tag, name: "gen1a", category: Tag.categories.general, post_count: 10)
+          create(:tag, name: "gen1b", category: Tag.categories.general, post_count: 1000)
+          create(:tag, name: "gen1c", category: Tag.categories.general, post_count: 5)
+          create(:wiki_page, title: "gen1a")
+          create(:wiki_page, title: "gen1c")
+          @imply = create(:bulk_update_request, script: "imply gen1a -> gen1c")
+          @alias = create(:bulk_update_request, script: "alias gen1a -> gen1b")
+          @imply.approve!(@mod)
+        end
+
+        should "not let a mod approve it" do
+          @alias.approve!(@mod)
+
+          assert_includes(@alias.errors.full_messages, "Can't approve this request while BUR ##{@imply.id} is still being processed")
+          assert_equal("pending", @alias.reload.status)
+
+          perform_enqueued_jobs
+          assert_equal(false, TagImplication.active.exists?(antecedent_name: "gen1b", consequent_name: "gen1c"))
+        end
+
+        should "not let an admin approve it" do
+          @alias.approve!(create(:admin_user))
+
+          assert_includes(@alias.errors.full_messages, "Can't approve this request while BUR ##{@imply.id} is still being processed")
+          assert_equal("pending", @alias.reload.status)
+        end
+
+        should "let a mod approve it once the other BUR is processed" do
+          perform_enqueued_jobs
+          @alias.approve!(@mod)
+
+          assert_includes(@alias.errors.full_messages, "Can't approve create alias [[gen1a]] -> [[gen1b]] ([[gen1a]] has implications; requires Admin)")
+          assert_not_includes(@alias.errors.full_messages, "Can't approve this request while BUR ##{@imply.id} is still being processed")
+        end
+      end
+
       context "that has both implications and unimplications" do
         should "process them sequentially" do
           @bur = create_bur!("imply foo -> bar\nunimply foo -> bar", @admin)

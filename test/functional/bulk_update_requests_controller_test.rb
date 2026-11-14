@@ -508,6 +508,19 @@ class BulkUpdateRequestsControllerTest < ActionDispatch::IntegrationTest
           assert_equal(false, TagAlias.exists?(antecedent_name: "art1a", consequent_name: "art1b"))
         end
 
+        should "fail when aliasing a small general tag with a large style tag to a large artist" do
+          create(:tag, name: "gen1a", category: Tag.categories.general, post_count: 10)
+          create(:tag, name: "art1b", category: Tag.categories.artist, post_count: 1000)
+          create(:tag, name: "gen1a_(style)", category: Tag.categories.general, post_count: 1000)
+          @bulk_update_request = create(:bulk_update_request, script: "alias gen1a -> art1b")
+
+          post_auth approve_bulk_update_request_path(@bulk_update_request, format: :js), @mod
+
+          assert_includes(response.body, "Danbooru.Notice.error")
+          assert_includes(response.body, "[[gen1a_(style)]] is too large; requires Admin")
+          assert_equal("pending", @bulk_update_request.reload.status)
+        end
+
         should "fail when an earlier line changes the small tag's category before aliasing it to a large tag" do
           create(:tag, name: "gen1a", category: Tag.categories.general, post_count: 10)
           create(:tag, name: "gen1b", category: Tag.categories.general, post_count: 1000)
